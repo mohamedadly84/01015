@@ -281,7 +281,7 @@ export const CollectionView: React.FC<Props> = ({
                         type="number"
                         min="1"
                         max={remainingDue}
-                        step="100"
+                        step="any"
                         required
                         value={paymentAmount}
                         onChange={e => setPaymentAmount(Number(e.target.value))}

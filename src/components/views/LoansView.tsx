@@ -440,7 +440,7 @@ export const LoansView: React.FC<Props> = ({
                   type="number"
                   min="1"
                   max={payingPayment.amount - payingPayment.paidAmount}
-                  step="100"
+                  step="any"
                   required
                   value={repayAmount}
                   onChange={e => setRepayAmount(Number(e.target.value))}

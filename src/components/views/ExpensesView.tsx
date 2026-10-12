@@ -355,7 +355,7 @@ export const ExpensesView: React.FC<Props> = ({
                   <input
                     type="number"
                     min="1"
-                    step="100"
+                    step="any"
                     required
                     value={amount}
                     onChange={e => setAmount(Number(e.target.value))}
