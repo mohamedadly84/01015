@@ -5,6 +5,10 @@
       "description": "Shared real estate database containing units, customers, contracts, installments, loans, expenses, and settings",
       "type": "object",
       "properties": {
+        "projects": {
+          "type": "array",
+          "description": "List of construction projects and buildings"
+        },
         "units": {
           "type": "array",
           "description": "List of property units"

@@ -1,9 +1,13 @@
 import React from 'react';
 import { AppDatabase } from '../../types';
-import { formatCurrency, downloadCSV } from '../../utils/helpers';
+import {
+  formatCurrency, formatNumber, downloadCSV,
+  getBuildingList, calculateBuildingMetrics
+} from '../../utils/helpers';
 import {
   TrendingUp, Printer, Download, DollarSign, Wallet,
-  Building, PieChart, BarChart3, CheckCircle, ArrowDownRight, ArrowUpRight
+  Building, PieChart, BarChart3, CheckCircle, ArrowDownRight, ArrowUpRight,
+  Calculator, Layers
 } from 'lucide-react';
 
 interface Props {
@@ -27,12 +31,7 @@ export const ReportsView: React.FC<Props> = ({ db, onOpenSummaryReport }) => {
   const remainingSales = totalSales - totalDown;
 
   // Buildings list
-  const buildings = Array.from(
-    new Set([
-      ...db.units.map(u => u.building),
-      ...db.expenses.map(e => e.building),
-    ].filter(Boolean))
-  );
+  const buildings = getBuildingList(db);
 
   // Sales by building
   const salesByBuilding = buildings.map(b => {
@@ -44,19 +43,16 @@ export const ReportsView: React.FC<Props> = ({ db, onOpenSummaryReport }) => {
     return { building: b, count: contractsInB.length, sum };
   });
 
-  // Unit Profitability Calculation
+  // Unit Profitability Calculation based strictly on Area (m2) and Project Expenses
   const unitProfitability = db.units.map(unit => {
-    const buildingExpenses = db.expenses
-      .filter(e => e.building === unit.building)
-      .reduce((s, e) => s + e.amount, 0);
-
-    const unitsInBuilding = db.units.filter(u => u.building === unit.building).length || 1;
-    const unitCost = buildingExpenses / unitsInBuilding;
+    const metrics = calculateBuildingMetrics(db, unit.building);
+    const unitCost = Math.round(unit.area * metrics.costPerM2);
 
     const contract = db.contracts.find(c => c.unitId === unit.id);
     const salePrice = contract ? contract.totalPrice : 0;
-    const profit = salePrice > 0 ? salePrice - unitCost : -unitCost;
-    const margin = salePrice > 0 ? Math.round((profit / salePrice) * 100) : 0;
+    const effectivePrice = salePrice > 0 ? salePrice : unit.price;
+    const profit = effectivePrice > 0 ? effectivePrice - unitCost : -unitCost;
+    const margin = effectivePrice > 0 ? Math.round((profit / effectivePrice) * 100) : 0;
 
     return {
       unitNumber: unit.unitNumber,
@@ -64,8 +60,10 @@ export const ReportsView: React.FC<Props> = ({ db, onOpenSummaryReport }) => {
       floor: unit.floor,
       area: unit.area,
       listPrice: unit.price,
+      costPerM2: metrics.costPerM2,
       status: unit.status,
       salePrice,
+      effectivePrice,
       unitCost,
       profit,
       margin,
@@ -74,21 +72,22 @@ export const ReportsView: React.FC<Props> = ({ db, onOpenSummaryReport }) => {
 
   const handleExportProfitabilityCSV = () => {
     const headers = [
-      'رقم الوحدة', 'العمارة', 'المساحة', 'السعر المعروض',
-      'الحالة', 'سعر البيع الفعلي', 'تكلفة الوحدة', 'صافي الربح', 'هامش الربح %'
+      'رقم الوحدة', 'العمارة', 'المساحة (م²)', 'تكلفة المتر (ج.م/م²)', 'التكلفة المحسوبة (ج.م)',
+      'السعر المعروض', 'سعر البيع الفعلي', 'صافي الربح التقديري', 'هامش الربح %', 'الحالة'
     ];
     const rows = unitProfitability.map(p => [
       p.unitNumber,
       p.building,
       p.area,
-      p.listPrice,
-      p.status,
-      p.salePrice,
+      Math.round(p.costPerM2),
       Math.round(p.unitCost),
+      p.listPrice,
+      p.salePrice > 0 ? p.salePrice : p.listPrice,
       Math.round(p.profit),
       `${p.margin}%`,
+      p.status,
     ]);
-    downloadCSV('تقرير_ربحية_الوحدات_العقارية', headers, rows);
+    downloadCSV('تقرير_ربحية_وتكلفة_الوحدات_بالمساحة', headers, rows);
   };
 
   return (
@@ -240,9 +239,9 @@ export const ReportsView: React.FC<Props> = ({ db, onOpenSummaryReport }) => {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-slate-900 text-base">🎯 تحليل ربحية الوحدات (Unit Profitability)</h3>
+            <h3 className="font-bold text-slate-900 text-base">🎯 تحليل وتوزيع تكلفة المشروع على الوحدات بالمساحة (م²)</h3>
             <span className="text-xs text-slate-500">
-              يتم توزيع تكلفة إنشاء العمارة بالتساوي على عدد وحداتها ومقارنتها بسعر البيع الفعلي
+              يتم حساب إجمالي مساحات وحدات العمارة، وتوزيع المصروفات بدقة بناءً على مساحة كل وحدة (م²) لتحديد تكلفتها الفعلية وهامش الربح
             </span>
           </div>
         </div>
@@ -254,12 +253,13 @@ export const ReportsView: React.FC<Props> = ({ db, onOpenSummaryReport }) => {
                 <th className="py-3 px-4">الوحدة</th>
                 <th className="py-3 px-4">العمارة</th>
                 <th className="py-3 px-4">المساحة</th>
-                <th className="py-3 px-4">السعر المعروض</th>
-                <th className="py-3 px-4">الحالة</th>
+                <th className="py-3 px-4">تكلفة المتر (م²)</th>
+                <th className="py-3 px-4">السعر المطلوب</th>
                 <th className="py-3 px-4">سعر البيع الفعلي</th>
-                <th className="py-3 px-4">التكلفة التقديرية</th>
-                <th className="py-3 px-4">صافي الربح</th>
+                <th className="py-3 px-4">التكلفة المحسوبة</th>
+                <th className="py-3 px-4">صافي الربح التقديري</th>
                 <th className="py-3 px-4 text-center">هامش الربح</th>
+                <th className="py-3 px-4">الحالة</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -267,8 +267,29 @@ export const ReportsView: React.FC<Props> = ({ db, onOpenSummaryReport }) => {
                 <tr key={idx} className="hover:bg-slate-50 transition">
                   <td className="py-3.5 px-4 font-black text-slate-900">{p.unitNumber}</td>
                   <td className="py-3.5 px-4 font-medium text-slate-700">{p.building}</td>
-                  <td className="py-3.5 px-4 text-slate-600">{p.area} م²</td>
+                  <td className="py-3.5 px-4 text-slate-600 font-semibold">{p.area} م²</td>
+                  <td className="py-3.5 px-4 text-slate-500 text-xs">
+                    {formatCurrency(Math.round(p.costPerM2))} / م²
+                  </td>
                   <td className="py-3.5 px-4 text-slate-700">{formatCurrency(p.listPrice)}</td>
+                  <td className="py-3.5 px-4 font-semibold text-slate-900">
+                    {p.salePrice > 0 ? formatCurrency(p.salePrice) : '---'}
+                  </td>
+                  <td className="py-3.5 px-4 font-bold text-red-600 bg-red-50/20">
+                    {formatCurrency(Math.round(p.unitCost))}
+                  </td>
+                  <td className="py-3.5 px-4 font-black">
+                    <span className={p.profit >= 0 ? 'text-emerald-700' : 'text-red-600'}>
+                      {formatCurrency(Math.round(p.profit))}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-center font-bold">
+                    <span className={`px-2 py-0.5 rounded text-xs ${
+                      p.margin >= 20 ? 'bg-emerald-100 text-emerald-800' : p.margin >= 0 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {p.margin}%
+                    </span>
+                  </td>
                   <td className="py-3.5 px-4">
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${
                       p.status === 'مباعة' ? 'bg-emerald-50 text-emerald-700' :
@@ -277,32 +298,6 @@ export const ReportsView: React.FC<Props> = ({ db, onOpenSummaryReport }) => {
                     }`}>
                       {p.status}
                     </span>
-                  </td>
-                  <td className="py-3.5 px-4 font-semibold text-slate-900">
-                    {p.salePrice > 0 ? formatCurrency(p.salePrice) : '---'}
-                  </td>
-                  <td className="py-3.5 px-4 font-medium text-red-600">
-                    {formatCurrency(Math.round(p.unitCost))}
-                  </td>
-                  <td className="py-3.5 px-4 font-black">
-                    {p.salePrice > 0 ? (
-                      <span className={p.profit >= 0 ? 'text-emerald-700' : 'text-red-600'}>
-                        {formatCurrency(Math.round(p.profit))}
-                      </span>
-                    ) : (
-                      <span className="text-slate-400 text-xs">لم تُبع بعد</span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-4 text-center font-bold">
-                    {p.salePrice > 0 ? (
-                      <span className={`px-2 py-0.5 rounded text-xs ${
-                        p.margin >= 20 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'
-                      }`}>
-                        {p.margin}%
-                      </span>
-                    ) : (
-                      <span className="text-slate-400 text-xs">-</span>
-                    )}
                   </td>
                 </tr>
               ))}

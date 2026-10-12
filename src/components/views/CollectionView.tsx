@@ -274,16 +274,24 @@ export const CollectionView: React.FC<Props> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        المبلغ المدفوع الآن (ج.م) *
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-semibold text-slate-700">
+                          المبلغ المدفوع الآن (ج.م) *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentAmount(remainingDue)}
+                          className="text-[11px] text-emerald-700 hover:text-emerald-800 font-bold underline bg-emerald-50 px-2 py-0.5 rounded transition"
+                        >
+                          سداد كامل القسط ({formatCurrency(remainingDue)})
+                        </button>
+                      </div>
                       <input
                         type="number"
-                        min="1"
-                        max={remainingDue}
+                        min="0.01"
                         step="any"
                         required
-                        value={paymentAmount}
+                        value={paymentAmount || ''}
                         onChange={e => setPaymentAmount(Number(e.target.value))}
                         className="w-full px-3 py-2 border border-slate-200 rounded-xl text-base font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       />
@@ -356,6 +364,11 @@ export const CollectionView: React.FC<Props> = ({
                     >
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-800">
                         #{inst.installmentNumber}
+                        {inst.notes && (
+                          <span className="block text-[10px] font-sans font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded mt-0.5 w-fit">
+                            {inst.notes}
+                          </span>
+                        )}
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="font-bold text-slate-900 block">{customer?.name || '-'}</span>

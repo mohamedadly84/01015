@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { AppDatabase, Unit, UnitStatus } from '../../types';
-import { formatCurrency, downloadCSV } from '../../utils/helpers';
+import { AppDatabase, Unit, UnitStatus, Project } from '../../types';
+import {
+  formatCurrency, formatNumber, downloadCSV,
+  getBuildingList, calculateBuildingMetrics
+} from '../../utils/helpers';
 import {
   Building, Plus, Search, Filter, QrCode, Trash2, Edit2, Download,
-  CheckCircle, AlertCircle, Eye
+  CheckCircle, AlertCircle, Eye, Calculator, Sparkles
 } from 'lucide-react';
 
 interface Props {
@@ -29,14 +32,17 @@ export const UnitsView: React.FC<Props> = ({
 
   const [formUnitNumber, setFormUnitNumber] = useState('');
   const [formBuilding, setFormBuilding] = useState('');
+  const [isAddingCustomBuilding, setIsAddingCustomBuilding] = useState(false);
+  const [newBuildingName, setNewBuildingName] = useState('');
+
   const [formFloor, setFormFloor] = useState<number>(1);
   const [formArea, setFormArea] = useState<number>(120);
   const [formPrice, setFormPrice] = useState<number>(1500000);
   const [formStatus, setFormStatus] = useState<UnitStatus>('متاحة');
   const [formError, setFormError] = useState('');
 
-  // Extract unique buildings
-  const buildings = Array.from(new Set(db.units.map(u => u.building).filter(Boolean)));
+  // Extract unique buildings from registered projects, units and expenses
+  const buildings = getBuildingList(db);
 
   const filteredUnits = db.units.filter(u => {
     const matchesSearch =
@@ -50,7 +56,9 @@ export const UnitsView: React.FC<Props> = ({
   const resetForm = () => {
     setEditingUnitId(null);
     setFormUnitNumber('');
-    setFormBuilding('');
+    setFormBuilding(buildings[0] || '');
+    setIsAddingCustomBuilding(false);
+    setNewBuildingName('');
     setFormFloor(1);
     setFormArea(120);
     setFormPrice(1500000);
@@ -61,6 +69,11 @@ export const UnitsView: React.FC<Props> = ({
 
   const handleOpenAdd = () => {
     resetForm();
+    if (buildings.length > 0) {
+      setFormBuilding(buildings[0]);
+    } else {
+      setIsAddingCustomBuilding(true);
+    }
     setIsFormOpen(true);
   };
 
@@ -68,6 +81,8 @@ export const UnitsView: React.FC<Props> = ({
     setEditingUnitId(unit.id);
     setFormUnitNumber(unit.unitNumber);
     setFormBuilding(unit.building);
+    setIsAddingCustomBuilding(false);
+    setNewBuildingName('');
     setFormFloor(unit.floor);
     setFormArea(unit.area);
     setFormPrice(unit.price);
@@ -78,20 +93,37 @@ export const UnitsView: React.FC<Props> = ({
 
   const handleSaveUnit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formUnitNumber.trim() || !formBuilding.trim()) {
-      setFormError('يرجى إدخال رقم الوحدة واسم العمارة');
+    const effectiveBuilding = (isAddingCustomBuilding ? newBuildingName : formBuilding).trim();
+
+    if (!formUnitNumber.trim() || !effectiveBuilding) {
+      setFormError('يرجى إدخال رقم الوحدة واسم العمارة أو المشروع');
       return;
     }
 
     // Check duplicate unit number in same building
     const duplicate = db.units.find(
-      u => u.unitNumber === formUnitNumber.trim() &&
-           u.building === formBuilding.trim() &&
+      u => u.unitNumber.trim() === formUnitNumber.trim() &&
+           u.building.trim() === effectiveBuilding &&
            u.id !== editingUnitId
     );
     if (duplicate) {
-      setFormError(`رقم الوحدة ${formUnitNumber} مسجل بالفعل في ${formBuilding}`);
+      setFormError(`رقم الوحدة ${formUnitNumber} مسجل بالفعل في ${effectiveBuilding}`);
       return;
+    }
+
+    // Ensure building is added to projects list if not already present
+    let updatedProjects = db.projects || [];
+    const existsInProjects = updatedProjects.some(
+      p => p.name.trim().toLowerCase() === effectiveBuilding.toLowerCase()
+    );
+    if (!existsInProjects) {
+      const newPId = updatedProjects.length > 0 ? Math.max(...updatedProjects.map(p => p.id)) + 1 : 1;
+      const newProj: Project = {
+        id: newPId,
+        name: effectiveBuilding,
+        createdAt: new Date().toISOString().split('T')[0],
+      };
+      updatedProjects = [...updatedProjects, newProj];
     }
 
     if (editingUnitId) {
@@ -100,7 +132,7 @@ export const UnitsView: React.FC<Props> = ({
           ? {
               ...u,
               unitNumber: formUnitNumber.trim(),
-              building: formBuilding.trim(),
+              building: effectiveBuilding,
               floor: Number(formFloor),
               area: Number(formArea),
               price: Number(formPrice),
@@ -108,19 +140,19 @@ export const UnitsView: React.FC<Props> = ({
             }
           : u
       );
-      onUpdateDb({ ...db, units: updatedUnits });
+      onUpdateDb({ ...db, units: updatedUnits, projects: updatedProjects });
     } else {
       const newId = db.units.length > 0 ? Math.max(...db.units.map(u => u.id)) + 1 : 1;
       const newUnit: Unit = {
         id: newId,
         unitNumber: formUnitNumber.trim(),
-        building: formBuilding.trim(),
+        building: effectiveBuilding,
         floor: Number(formFloor),
         area: Number(formArea),
         price: Number(formPrice),
         status: formStatus,
       };
-      onUpdateDb({ ...db, units: [...db.units, newUnit] });
+      onUpdateDb({ ...db, units: [...db.units, newUnit], projects: updatedProjects });
     }
 
     resetForm();
@@ -144,10 +176,28 @@ export const UnitsView: React.FC<Props> = ({
   };
 
   const handleExportCSV = () => {
-    const headers = ['رقم الوحدة', 'العمارة', 'الدور', 'المساحة (م²)', 'السعر (ج.م)', 'الحالة'];
-    const rows = db.units.map(u => [u.unitNumber, u.building, u.floor, u.area, u.price, u.status]);
-    downloadCSV('قائمة_الوحدات_العقارية', headers, rows);
+    const headers = [
+      'رقم الوحدة', 'العمارة', 'الدور', 'المساحة (م²)',
+      'التكلفة المحسوبة (ج.م)', 'السعر المطلوب (ج.م)', 'صافي الربح التقديري', 'الحالة'
+    ];
+    const rows = db.units.map(u => {
+      const metrics = calculateBuildingMetrics(db, u.building);
+      const unitCost = Math.round(u.area * metrics.costPerM2);
+      const profit = Math.round(u.price - unitCost);
+      return [
+        u.unitNumber, u.building, u.floor, u.area,
+        unitCost, u.price, profit, u.status
+      ];
+    });
+    downloadCSV('قائمة_الوحدات_العقارية_مع_التكاليف', headers, rows);
   };
+
+  // Compute live preview metrics for the unit form
+  const activeFormBuilding = (isAddingCustomBuilding ? newBuildingName : formBuilding).trim();
+  const formBuildingMetrics = activeFormBuilding ? calculateBuildingMetrics(db, activeFormBuilding) : null;
+  const formCalculatedCost = formBuildingMetrics ? Math.round(formArea * formBuildingMetrics.costPerM2) : 0;
+  const formEstimatedProfit = formPrice - formCalculatedCost;
+  const formMargin = formPrice > 0 ? Math.round((formEstimatedProfit / formPrice) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -252,7 +302,7 @@ export const UnitsView: React.FC<Props> = ({
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">رقم الوحدة *</label>
                   <input
@@ -265,15 +315,50 @@ export const UnitsView: React.FC<Props> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">العمارة / المشروع *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formBuilding}
-                    onChange={e => setFormBuilding(e.target.value)}
-                    placeholder="مثال: عمارة النور"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700">العمارة / المشروع *</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingCustomBuilding(!isAddingCustomBuilding)}
+                      className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer"
+                    >
+                      {isAddingCustomBuilding ? '← اختيار من القائمة' : '+ مشروع جديد'}
+                    </button>
+                  </div>
+
+                  {isAddingCustomBuilding ? (
+                    <input
+                      type="text"
+                      required
+                      value={newBuildingName}
+                      onChange={e => setNewBuildingName(e.target.value)}
+                      placeholder="اكتب اسم العمارة / المشروع الجديد"
+                      className="w-full px-3 py-2 border border-blue-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-blue-50/30"
+                      autoFocus
+                    />
+                  ) : (
+                    <select
+                      required
+                      value={formBuilding}
+                      onChange={e => {
+                        if (e.target.value === '__NEW__') {
+                          setIsAddingCustomBuilding(true);
+                          setNewBuildingName('');
+                        } else {
+                          setFormBuilding(e.target.value);
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                    >
+                      {buildings.length === 0 && (
+                        <option value="">-- لم يتم إدخال عمارات بعد --</option>
+                      )}
+                      {buildings.map(b => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                      <option value="__NEW__">+ إضافة عمارة أو مشروع جديد...</option>
+                    </select>
+                  )}
                 </div>
               </div>
 
@@ -289,10 +374,11 @@ export const UnitsView: React.FC<Props> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">المساحة (م²)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">المساحة (م²) *</label>
                   <input
                     type="number"
                     min="1"
+                    required
                     value={formArea}
                     onChange={e => setFormArea(Number(e.target.value))}
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -313,11 +399,11 @@ export const UnitsView: React.FC<Props> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">سعر الوحدة (ج.م) *</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">سعر الوحدة المطلوب (ج.م) *</label>
                 <input
                   type="number"
                   min="0"
-                  step="5000"
+                  step="any"
                   required
                   value={formPrice}
                   onChange={e => setFormPrice(Number(e.target.value))}
@@ -327,6 +413,36 @@ export const UnitsView: React.FC<Props> = ({
                   {formatCurrency(formPrice)}
                 </span>
               </div>
+
+              {/* Real-time Cost Estimation Box */}
+              {activeFormBuilding && formBuildingMetrics && formArea > 0 && (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-indigo-700 font-bold">
+                    <Calculator className="w-3.5 h-3.5" />
+                    <span>حساب التكلفة التقديرية بناءً على مساحة الوحدة ومصروفات ({activeFormBuilding}):</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 pt-1 text-[11px]">
+                    <div>
+                      <span className="text-slate-500 block">تكلفة المتر للعمارة:</span>
+                      <span className="font-bold text-slate-800">
+                        {formatCurrency(Math.round(formBuildingMetrics.costPerM2))} / م²
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">التكلفة المحسوبة للوحدة:</span>
+                      <span className="font-bold text-rose-700">
+                        {formatCurrency(formCalculatedCost)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">الربح التقديري ({formMargin}%):</span>
+                      <span className={`font-bold ${formEstimatedProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {formatCurrency(formEstimatedProfit)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-2 pt-4 border-t border-slate-100">
                 <button
@@ -354,45 +470,58 @@ export const UnitsView: React.FC<Props> = ({
           <table className="w-full text-right text-sm">
             <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 font-bold">
               <tr>
-                <th className="py-3 px-4">رقم الوحدة</th>
-                <th className="py-3 px-4">العمارة</th>
-                <th className="py-3 px-4">الدور</th>
-                <th className="py-3 px-4">المساحة</th>
-                <th className="py-3 px-4">السعر المطلوب</th>
-                <th className="py-3 px-4">الحالة</th>
-                <th className="py-3 px-4 text-center">QR Code</th>
-                {canEdit && <th className="py-3 px-4 text-center">إجراءات</th>}
+                <th className="py-3 px-3">رقم الوحدة</th>
+                <th className="py-3 px-3">العمارة</th>
+                <th className="py-3 px-3">الدور</th>
+                <th className="py-3 px-3">المساحة</th>
+                <th className="py-3 px-3">التكلفة المحسوبة (بالمساحة)</th>
+                <th className="py-3 px-3">السعر المطلوب</th>
+                <th className="py-3 px-3">صافي الربح التقديري</th>
+                <th className="py-3 px-3">الحالة</th>
+                <th className="py-3 px-3 text-center">QR Code</th>
+                {canEdit && <th className="py-3 px-3 text-center">إجراءات</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredUnits.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={10} className="py-12 text-center text-slate-400">
                     لا توجد وحدات تطابق معايير البحث
                   </td>
                 </tr>
               ) : (
                 filteredUnits.map(unit => {
                   const hasContract = db.contracts.some(c => c.unitId === unit.id);
+                  const metrics = calculateBuildingMetrics(db, unit.building);
+                  const unitCost = Math.round(unit.area * metrics.costPerM2);
+                  const profit = Math.round(unit.price - unitCost);
+                  const margin = unit.price > 0 ? Math.round((profit / unit.price) * 100) : 0;
 
                   return (
                     <tr key={unit.id} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3.5 px-4 font-black text-slate-900 text-base">
+                      <td className="py-3 px-3 font-black text-slate-900 text-base">
                         {unit.unitNumber}
                       </td>
-                      <td className="py-3.5 px-4 font-medium text-slate-700">
+                      <td className="py-3 px-3 font-semibold text-slate-700">
                         {unit.building}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-600">
+                      <td className="py-3 px-3 text-slate-600">
                         الدور {unit.floor}
                       </td>
-                      <td className="py-3.5 px-4 font-medium text-slate-700">
+                      <td className="py-3 px-3 font-bold text-blue-700">
                         {unit.area} م²
                       </td>
-                      <td className="py-3.5 px-4 font-bold text-emerald-700">
+                      <td className="py-3 px-3 font-bold text-rose-700 bg-rose-50/30">
+                        {formatCurrency(unitCost)}
+                      </td>
+                      <td className="py-3 px-3 font-bold text-emerald-700">
                         {formatCurrency(unit.price)}
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className={`py-3 px-3 font-semibold text-xs ${profit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {formatCurrency(profit)}
+                        <span className="text-[10px] text-slate-400 block">({margin}%)</span>
+                      </td>
+                      <td className="py-3 px-3">
                         {canEdit ? (
                           <select
                             value={unit.status}
@@ -423,7 +552,7 @@ export const UnitsView: React.FC<Props> = ({
                           </span>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-3 px-3 text-center">
                         <button
                           onClick={() => onOpenQr(unit)}
                           title="عرض رمز QR Code"
@@ -433,7 +562,7 @@ export const UnitsView: React.FC<Props> = ({
                         </button>
                       </td>
                       {canEdit && (
-                        <td className="py-3.5 px-4 text-center">
+                        <td className="py-3 px-3 text-center">
                           <div className="flex items-center justify-center gap-1.5">
                             <button
                               onClick={() => handleOpenEdit(unit)}

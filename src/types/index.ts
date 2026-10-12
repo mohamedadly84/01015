@@ -52,6 +52,7 @@ export interface Installment {
   amount: number;
   paidAmount: number;
   status: InstallmentStatus;
+  notes?: string;
 }
 
 export type LenderType = 'فرد' | 'بنك';
@@ -94,6 +95,15 @@ export interface Expense {
   notes: string;
 }
 
+export interface Project {
+  id: number;
+  name: string;
+  location?: string;
+  description?: string;
+  notes?: string;
+  createdAt?: string;
+}
+
 export interface CompanySettings {
   name: string;
   phone: string;
@@ -103,6 +113,7 @@ export interface CompanySettings {
 }
 
 export interface AppDatabase {
+  projects?: Project[];
   users: User[];
   units: Unit[];
   customers: Customer[];

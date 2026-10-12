@@ -196,12 +196,15 @@ export const ContractModal: React.FC<Props> = ({
             {/* Installments Table */}
             {installments.length > 0 && (
               <div className="text-sm">
-                <h3 className="font-bold text-slate-900 mb-2">ثالثاً: جدول استحقاق الأقساط:</h3>
+                <h3 className="font-bold text-slate-900 mb-2">ثالثاً: جدول استحقاق الأقساط والدفعات:</h3>
                 <div className="overflow-x-auto border border-slate-300 rounded-lg">
                   <table className="w-full text-right text-xs">
                     <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
                       <tr>
                         <th className="py-2 px-3 text-center w-14">م</th>
+                        {installments.some(i => !!i.notes) && (
+                          <th className="py-2 px-3">البيان / الوصف</th>
+                        )}
                         <th className="py-2 px-3">تاريخ الاستحقاق</th>
                         <th className="py-2 px-3">القيمة المستحقة</th>
                         <th className="py-2 px-3">المدفوع</th>
@@ -212,6 +215,9 @@ export const ContractModal: React.FC<Props> = ({
                       {installments.map(inst => (
                         <tr key={inst.id} className="hover:bg-slate-50">
                           <td className="py-2 px-3 text-center font-bold">{inst.installmentNumber}</td>
+                          {installments.some(i => !!i.notes) && (
+                            <td className="py-2 px-3 text-slate-700 font-medium">{inst.notes || `قسط ${inst.installmentNumber}`}</td>
+                          )}
                           <td className="py-2 px-3 font-mono">{inst.dueDate}</td>
                           <td className="py-2 px-3 font-bold">{formatCurrency(inst.amount)}</td>
                           <td className="py-2 px-3 text-emerald-700 font-medium">{formatCurrency(inst.paidAmount)}</td>

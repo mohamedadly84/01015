@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { AppDatabase, Expense } from '../../types';
-import { formatCurrency, downloadCSV } from '../../utils/helpers';
+import { AppDatabase, Expense, Project } from '../../types';
 import {
-  Receipt, Plus, Filter, Download, AlertCircle, Trash2
+  formatCurrency, formatNumber, downloadCSV,
+  getBuildingList, calculateBuildingMetrics
+} from '../../utils/helpers';
+import {
+  Receipt, Plus, Filter, Download, AlertCircle, Trash2,
+  Building2, Calculator, Layers
 } from 'lucide-react';
 
 interface Props {
@@ -27,6 +31,9 @@ export const ExpensesView: React.FC<Props> = ({
 
   const [categoryId, setCategoryId] = useState<number>(1);
   const [building, setBuilding] = useState('');
+  const [isAddingCustomBuilding, setIsAddingCustomBuilding] = useState(false);
+  const [newBuildingName, setNewBuildingName] = useState('');
+
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState<number>(0);
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
@@ -35,24 +42,29 @@ export const ExpensesView: React.FC<Props> = ({
   const [formError, setFormError] = useState('');
 
   // Extract unique buildings
-  const buildings = Array.from(
-    new Set([
-      ...db.units.map(u => u.building),
-      ...db.expenses.map(e => e.building),
-    ].filter(Boolean))
-  );
+  const buildings = getBuildingList(db);
 
   const totalExpenses = db.expenses.reduce((sum, e) => sum + e.amount, 0);
 
   const resetExpenseForm = () => {
     setCategoryId(db.expenseCategories[0]?.id || 1);
-    setBuilding('');
+    setBuilding(buildings[0] || '');
+    setIsAddingCustomBuilding(false);
+    setNewBuildingName('');
     setDescription('');
     setAmount(0);
     setVendor('');
     setNotes('');
     setFormError('');
     setIsAddExpenseOpen(false);
+  };
+
+  const handleOpenAddExpense = () => {
+    resetExpenseForm();
+    if (buildings.length > 0) {
+      setBuilding(buildings[0]);
+    }
+    setIsAddExpenseOpen(true);
   };
 
   const handleAddExpense = (e: React.FormEvent) => {
@@ -66,11 +78,30 @@ export const ExpensesView: React.FC<Props> = ({
       return;
     }
 
+    const effectiveBuilding = (isAddingCustomBuilding ? newBuildingName : building).trim();
+
+    // If new building name entered, add to projects list
+    let updatedProjects = db.projects || [];
+    if (effectiveBuilding && effectiveBuilding !== 'عام') {
+      const existsInProjects = updatedProjects.some(
+        p => p.name.trim().toLowerCase() === effectiveBuilding.toLowerCase()
+      );
+      if (!existsInProjects) {
+        const newPId = updatedProjects.length > 0 ? Math.max(...updatedProjects.map(p => p.id)) + 1 : 1;
+        const newProj: Project = {
+          id: newPId,
+          name: effectiveBuilding,
+          createdAt: new Date().toISOString().split('T')[0],
+        };
+        updatedProjects = [...updatedProjects, newProj];
+      }
+    }
+
     const newExpenseId = db.expenses.length > 0 ? Math.max(...db.expenses.map(e => e.id)) + 1 : 1;
     const newExpense: Expense = {
       id: newExpenseId,
       categoryId: Number(categoryId),
-      building: building.trim(),
+      building: effectiveBuilding,
       description: description.trim(),
       amount: Number(amount),
       expenseDate,
@@ -81,6 +112,7 @@ export const ExpensesView: React.FC<Props> = ({
     onUpdateDb({
       ...db,
       expenses: [newExpense, ...db.expenses],
+      projects: updatedProjects,
     });
 
     resetExpenseForm();
@@ -167,7 +199,7 @@ export const ExpensesView: React.FC<Props> = ({
                 <span>➕ بند جديد</span>
               </button>
               <button
-                onClick={() => setIsAddExpenseOpen(true)}
+                onClick={handleOpenAddExpense}
                 className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition shadow-sm"
               >
                 <Plus className="w-4 h-4" />
@@ -214,6 +246,41 @@ export const ExpensesView: React.FC<Props> = ({
           </div>
         </div>
       </div>
+
+      {/* Buildings & Cost per m² summary */}
+      {buildings.length > 0 && (
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <Building2 className="w-5 h-5 text-indigo-600" />
+            <h3 className="font-bold text-slate-800 text-sm">
+              مصروفات العمارات والمشاريع وتكلفة المتر المربع (م²)
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {buildings.map(bName => {
+              const m = calculateBuildingMetrics(db, bName);
+              return (
+                <div key={bName} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col justify-between hover:bg-slate-100/70 transition">
+                  <div className="flex justify-between items-start mb-1.5">
+                    <span className="font-bold text-slate-800 text-sm">{bName}</span>
+                    <span className="text-xs font-bold text-red-600">{formatCurrency(m.totalExpenses)}</span>
+                  </div>
+                  <div className="space-y-1 text-xs text-slate-500 pt-2 border-t border-slate-200/70">
+                    <div className="flex justify-between">
+                      <span>إجمالي المساحات:</span>
+                      <span className="font-semibold text-slate-700">{formatNumber(m.totalArea)} م² ({m.unitsCount} وحدة)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>تكلفة المتر المربع:</span>
+                      <span className="font-bold text-indigo-700">{formatCurrency(Math.round(m.costPerM2))} / م²</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Filter Bar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-center justify-between">
@@ -326,16 +393,77 @@ export const ExpensesView: React.FC<Props> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">العمارة / المشروع</label>
-                  <input
-                    type="text"
-                    value={building}
-                    onChange={e => setBuilding(e.target.value)}
-                    placeholder="مثال: عمارة النور أو عام"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700">العمارة / المشروع</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingCustomBuilding(!isAddingCustomBuilding)}
+                      className="text-[11px] text-red-600 hover:text-red-800 font-semibold cursor-pointer"
+                    >
+                      {isAddingCustomBuilding ? '← اختيار من القائمة' : '+ مشروع جديد'}
+                    </button>
+                  </div>
+
+                  {isAddingCustomBuilding ? (
+                    <input
+                      type="text"
+                      value={newBuildingName}
+                      onChange={e => setNewBuildingName(e.target.value)}
+                      placeholder="اكتب اسم العمارة / المشروع الجديد"
+                      className="w-full px-3 py-2 border border-red-300 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:outline-none bg-red-50/20"
+                      autoFocus
+                    />
+                  ) : (
+                    <select
+                      value={building}
+                      onChange={e => {
+                        if (e.target.value === '__NEW__') {
+                          setIsAddingCustomBuilding(true);
+                          setNewBuildingName('');
+                        } else {
+                          setBuilding(e.target.value);
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:outline-none bg-white"
+                    >
+                      <option value="">عام (غير مخصص لعمارة محددة)</option>
+                      {buildings.map(b => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                      <option value="__NEW__">+ إضافة عمارة أو مشروع جديد...</option>
+                    </select>
+                  )}
                 </div>
               </div>
+
+              {/* Helper metrics info for chosen building */}
+              {(() => {
+                const targetB = (isAddingCustomBuilding ? newBuildingName : building).trim();
+                if (!targetB || targetB === 'عام') return null;
+                const m = calculateBuildingMetrics(db, targetB);
+                return (
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1">
+                    <div className="flex items-center gap-1.5 text-indigo-700 font-bold">
+                      <Calculator className="w-3.5 h-3.5" />
+                      <span>بيانات مشروع ({targetB}):</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 pt-1 text-[11px]">
+                      <div>
+                        <span className="text-slate-500 block">إجمالي المساحات:</span>
+                        <span className="font-bold text-slate-800">{formatNumber(m.totalArea)} م² ({m.unitsCount} وحدة)</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block">المصروفات السابقة:</span>
+                        <span className="font-bold text-red-600">{formatCurrency(m.totalExpenses)}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block">تكلفة المتر الحالية:</span>
+                        <span className="font-bold text-indigo-700">{formatCurrency(Math.round(m.costPerM2))} / م²</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">البيان والوصف بالتفصيل *</label>

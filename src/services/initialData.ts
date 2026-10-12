@@ -2,6 +2,7 @@ import { AppDatabase } from '../types';
 
 // قاعدة بيانات جديدة ونظيفة تماماً وخالية من أي بيانات تجريبية
 export const initialData: AppDatabase = {
+  projects: [],
   users: [
     {
       id: 1,
@@ -42,6 +43,10 @@ export const initialData: AppDatabase = {
 
 // بيانات تجريبية اختيارية في حال رغب المستخدم في استدعائها للاختبار فقط
 export const sampleDemoData: AppDatabase = {
+  projects: [
+    { id: 1, name: 'عمارة النور', location: 'المعادي - القاهرة', description: 'عمارة سكنية راقية 4 أدوار' },
+    { id: 2, name: 'برج الياسمين', location: 'الشيخ زايد - الجيزة', description: 'برج سكني متميز' }
+  ],
   users: [
     {
       id: 1,

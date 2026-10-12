@@ -22,6 +22,7 @@ import { SummaryReportModal } from './components/SummaryReportModal';
 
 // Views
 import { DashboardView } from './components/views/DashboardView';
+import { ProjectsView } from './components/views/ProjectsView';
 import { UnitsView } from './components/views/UnitsView';
 import { CustomersView } from './components/views/CustomersView';
 import { SalesView } from './components/views/SalesView';
@@ -239,6 +240,7 @@ export default function App() {
   // Build visible tabs based on user permissions
   const tabs: { id: string; label: string; visible: boolean }[] = [
     { id: '🏠 الرئيسية', label: '🏠 الرئيسية', visible: perms.view_units },
+    { id: '🏗️ المشاريع', label: '🏗️ المشاريع', visible: perms.view_units },
     { id: '🏢 الوحدات', label: '🏢 الوحدات', visible: perms.view_units },
     { id: '👥 العملاء', label: '👥 العملاء', visible: perms.view_customers },
     { id: '💰 البيع', label: '💰 البيع', visible: perms.view_sales },
@@ -348,6 +350,15 @@ export default function App() {
               setQuickPayInstallmentId(instId);
               setActiveTab('💵 التحصيل');
             }}
+          />
+        )}
+
+        {activeTab === '🏗️ المشاريع' && perms.view_units && (
+          <ProjectsView
+            db={db}
+            canEdit={perms.edit_units}
+            onUpdateDb={handleUpdateDb}
+            onNavigateTab={(tab) => setActiveTab(tab)}
           />
         )}
 

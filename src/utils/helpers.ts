@@ -102,3 +102,84 @@ export function addMonths(dateStr: string, months: number): string {
   d.setMonth(d.getMonth() + months);
   return d.toISOString().split('T')[0];
 }
+
+import type { AppDatabase, Unit } from '../types';
+
+export interface BuildingMetrics {
+  buildingName: string;
+  units: Unit[];
+  totalArea: number;
+  totalExpenses: number;
+  costPerM2: number;
+  unitsCount: number;
+  unitsAvailableCount: number;
+  unitsSoldCount: number;
+  unitsReservedCount: number;
+  totalSalesValue: number;
+  totalExpectedRevenue: number;
+  totalEstimatedProfit: number;
+}
+
+export function getBuildingList(db: AppDatabase): string[] {
+  const names = new Set<string>();
+  if (Array.isArray(db.projects)) {
+    db.projects.forEach(p => {
+      if (p.name && p.name.trim()) names.add(p.name.trim());
+    });
+  }
+  if (Array.isArray(db.units)) {
+    db.units.forEach(u => {
+      if (u.building && u.building.trim()) names.add(u.building.trim());
+    });
+  }
+  if (Array.isArray(db.expenses)) {
+    db.expenses.forEach(e => {
+      if (e.building && e.building.trim()) names.add(e.building.trim());
+    });
+  }
+  return Array.from(names);
+}
+
+export function calculateBuildingMetrics(db: AppDatabase, buildingName: string): BuildingMetrics {
+  const trimmedName = buildingName.trim();
+  const units = (db.units || []).filter(u => u.building?.trim() === trimmedName);
+  const totalArea = units.reduce((sum, u) => sum + (Number(u.area) || 0), 0);
+  
+  const totalExpenses = (db.expenses || [])
+    .filter(e => e.building?.trim() === trimmedName)
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+  const costPerM2 = totalArea > 0 ? totalExpenses / totalArea : 0;
+
+  const unitsSold = units.filter(u => u.status === 'مباعة');
+  const unitsReserved = units.filter(u => u.status === 'محجوزة');
+  const unitsAvailable = units.filter(u => u.status === 'متاحة');
+
+  // Actual contracted sales for this building
+  const contractedSales = (db.contracts || [])
+    .filter(c => units.some(u => u.id === c.unitId))
+    .reduce((sum, c) => sum + c.totalPrice, 0);
+
+  // Remaining potential sales from available/reserved units list price
+  const unsoldValue = units
+    .filter(u => u.status !== 'مباعة')
+    .reduce((sum, u) => sum + (Number(u.price) || 0), 0);
+
+  const totalExpectedRevenue = contractedSales + unsoldValue;
+  const totalEstimatedProfit = totalExpectedRevenue - totalExpenses;
+
+  return {
+    buildingName: trimmedName,
+    units,
+    totalArea,
+    totalExpenses,
+    costPerM2,
+    unitsCount: units.length,
+    unitsAvailableCount: unitsAvailable.length,
+    unitsSoldCount: unitsSold.length,
+    unitsReservedCount: unitsReserved.length,
+    totalSalesValue: contractedSales,
+    totalExpectedRevenue,
+    totalEstimatedProfit,
+  };
+}

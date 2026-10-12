@@ -168,7 +168,7 @@ export const ReceiptModal: React.FC<Props> = ({
             <div className="flex items-baseline">
               <span className="font-semibold text-slate-700 w-36">وذلك عن سداد:</span>
               <span className="font-medium text-slate-800 border-b border-dotted border-slate-400 flex-1 pb-1">
-                القسط رقم ({installment.installmentNumber}) من عقد البيع رقم #{contract.id}
+                {installment.notes ? `${installment.notes} (القسط رقم ${installment.installmentNumber})` : `القسط رقم (${installment.installmentNumber})`} من عقد البيع رقم #{contract.id}
               </span>
             </div>
 
