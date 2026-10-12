@@ -1,0 +1,6 @@
+{
+  "name": "برنامج المحاسبة العقارية",
+  "description": "برنامج محاسبة متكامل لإدارة التطوير العقاري: الوحدات، العملاء، العقود، الأقساط، القروض، والمصروفات.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

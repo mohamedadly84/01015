@@ -1,0 +1,73 @@
+{
+  "entities": {
+    "RealEstateDatabase": {
+      "title": "RealEstateDatabase",
+      "description": "Shared real estate database containing units, customers, contracts, installments, loans, expenses, and settings",
+      "type": "object",
+      "properties": {
+        "units": {
+          "type": "array",
+          "description": "List of property units"
+        },
+        "customers": {
+          "type": "array",
+          "description": "List of buyers and customers"
+        },
+        "contracts": {
+          "type": "array",
+          "description": "Sales contracts"
+        },
+        "installments": {
+          "type": "array",
+          "description": "Payment installments schedule"
+        },
+        "loans": {
+          "type": "array",
+          "description": "Bank and individual loans"
+        },
+        "loanPayments": {
+          "type": "array",
+          "description": "Loan repayment records"
+        },
+        "expenseCategories": {
+          "type": "array",
+          "description": "Categories for expenses"
+        },
+        "expenses": {
+          "type": "array",
+          "description": "Project and operational expenses"
+        },
+        "settings": {
+          "type": "object",
+          "description": "Company profile and system configurations"
+        },
+        "users": {
+          "type": "array",
+          "description": "Application team user accounts"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        }
+      },
+      "required": [
+        "units",
+        "customers",
+        "contracts",
+        "installments",
+        "expenses",
+        "settings"
+      ]
+    }
+  },
+  "firestore": {
+    "/realestate/{docId}": {
+      "schema": "RealEstateDatabase",
+      "description": "Central real estate accounting database document shared synchronously across all team members"
+    },
+    "/test/{docId}": {
+      "schema": "RealEstateDatabase",
+      "description": "Connectivity test document for health checks"
+    }
+  }
+}
