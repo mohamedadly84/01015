@@ -48,6 +48,29 @@
   box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.15);
 }
 
+/* Light Mode Overrides for Apple-style Bright Theme */
+.light-mode body {
+  background: #f8f6f2 !important;
+  color: #1a1a1a !important;
+  background-image: none !important;
+}
+
+.light-mode .glass-panel {
+  background: rgba(255, 255, 255, 0.65) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+
+.light-mode .glass-card {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.light-mode .bg-slate-950 {
+  background: #f0ede8 !important;
+}
+
 @media print {
   /* Set A4 page size and margins */
   @page {

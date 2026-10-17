@@ -37,7 +37,7 @@ import { PublicCatalogView } from './components/views/PublicCatalogView';
 
 import {
   Building2, LogOut, CheckCircle2, RefreshCw, KeyRound, Lock, User as UserIcon,
-  Cloud, CloudOff, Globe, Grid
+  Cloud, CloudOff, Globe, Grid, Sun, Moon
 } from 'lucide-react';
 
 export default function App() {
@@ -69,6 +69,32 @@ export default function App() {
     }
     return null;
   });
+
+  // Theme mode toggle (Dark / Light) - Apple-style
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('hermes-theme');
+      return saved ? saved === 'dark' : true; // default to dark luxury
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.remove('light-mode');
+      document.documentElement.classList.add(isDarkMode ? 'dark-mode' : 'light-mode');
+      localStorage.setItem('hermes-theme', isDarkMode ? 'dark' : 'light');
+      // Apply body background override for light mode
+      const body = document.body;
+      if (isDarkMode) {
+        body.classList.remove('light-mode');
+        body.style.backgroundImage = 'radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.08) 0px, transparent 50%)';
+      } else {
+        body.classList.add('light-mode');
+        body.style.backgroundImage = 'none';
+      }
+    }
+  }, [isDarkMode]);
 
   // Check if visitor catalog portal is requested e.g. ?mode=visitor, ?catalog=1, ?portal=public
   const [isVisitorMode, setIsVisitorMode] = useState<boolean>(() => {
@@ -392,6 +418,16 @@ export default function App() {
               <Globe className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">معرض الزوار 🌐</span>
               <span className="sm:hidden">المعرض</span>
+            </button>
+
+            {/* Theme Toggle Button */}
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-400/10 hover:bg-amber-400/20 text-amber-600 rounded-xl text-xs font-bold transition border border-amber-400/30 cursor-pointer shadow-xs"
+              title={isDarkMode ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الليلي'}
+            >
+              {isDarkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{isDarkMode ? 'فاتح ☀️' : 'ليلي 🌙'}</span>
             </button>
 
             <div className="text-left hidden sm:block">
