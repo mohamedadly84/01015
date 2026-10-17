@@ -288,58 +288,6 @@ export const PublicCatalogView: React.FC<Props> = ({
           </div>
         </div>
       </section>
-        {/* Architectural subtle ambient background pattern */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-20"
-          style={{
-            backgroundImage: `radial-gradient(#d4af37 1px, transparent 1px)`,
-            backgroundSize: '28px 28px',
-          }}
-        />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="max-w-3xl text-right space-y-3">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold">
-              <Compass className="w-4 h-4 text-amber-400" />
-              <span>مخطط المشروعات المعمارية والوحدات السكنية</span>
-            </div>
-            <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight tracking-tight">
-              استكشف المخطط العام والوحدات المتاحة
-            </h2>
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              اختر العمارة والدور لاستعراض الوحدات السكنية، مع كروكي معماري توضيحي وتوزيع المساحات لكل وحدة، واستعلام لحظي ومباشر عن حالة التوفر والتعاقد.
-            </p>
-          </div>
-
-          {/* Live Metrics Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-8">
-            <div className="bg-slate-900/80 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-slate-800/90 shadow-xl text-right">
-              <span className="text-slate-400 text-xs block mb-1">إجمالي الوحدات المسجلة</span>
-              <span className="text-2xl sm:text-3xl font-black text-white font-mono">{totalUnits}</span>
-              <span className="text-[11px] text-slate-500 mr-1">وحدة</span>
-            </div>
-
-            <div className="bg-emerald-950/20 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-emerald-500/20 shadow-xl text-right">
-              <span className="text-emerald-400 text-xs font-semibold block mb-1">متاحة للبيع والتعاقد</span>
-              <span className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">{availableUnits}</span>
-              <span className="text-[11px] text-emerald-500/80 mr-1">جاهزة للمعاينة</span>
-            </div>
-
-            <div className="bg-amber-950/20 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-amber-500/20 shadow-xl text-right">
-              <span className="text-amber-400 text-xs font-semibold block mb-1">وحدات قيد الحجز</span>
-              <span className="text-2xl sm:text-3xl font-black text-amber-400 font-mono">{reservedUnits}</span>
-              <span className="text-[11px] text-amber-500/80 mr-1">محجوزة</span>
-            </div>
-
-            <div className="bg-slate-900/80 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-slate-800/90 shadow-xl text-right">
-              <span className="text-slate-400 text-xs block mb-1">العمارات والمشاريع</span>
-              <span className="text-2xl sm:text-3xl font-black text-amber-400 font-mono">{buildings.length}</span>
-              <span className="text-[11px] text-slate-500 mr-1">عمارة / برج</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1 w-full space-y-10">
         {/* 1. SECTION: المخطط العام للعمارات (Master Site Plan) */}
