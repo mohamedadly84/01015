@@ -286,7 +286,7 @@ export const ProjectsView: React.FC<Props> = ({
       </div>
 
       {/* Buildings Cards / Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {allBuildingNames.map(bName => {
           const metrics = calculateBuildingMetrics(db, bName);
           const projObj = projectsList.find(p => p.name === bName);
@@ -296,101 +296,101 @@ export const ProjectsView: React.FC<Props> = ({
             <div
               key={bName}
               onClick={() => setSelectedBuilding(bName)}
-              className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
+              className={`p-6 rounded-3xl transition-all cursor-pointer relative overflow-hidden glass-card group ${
                 isSelected
-                  ? 'bg-gradient-to-br from-indigo-50/60 to-blue-50/40 border-indigo-500 shadow-md ring-2 ring-indigo-500/20'
-                  : 'bg-white hover:bg-slate-50 border-slate-200 shadow-sm'
+                  ? 'border-indigo-500 shadow-xl shadow-indigo-500/10 ring-2 ring-indigo-500/30 bg-slate-900/90'
+                  : 'hover:border-slate-700'
               }`}
             >
               {isSelected && (
-                <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-indigo-600 to-blue-500" />
+                <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-indigo-500 to-cyan-400" />
               )}
 
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${
-                    isSelected ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'bg-slate-100 text-slate-700'
+              <div className="flex items-start justify-between gap-2 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-lg ${
+                    isSelected ? 'bg-gradient-to-br from-indigo-600 to-cyan-600 text-white shadow-indigo-600/30' : 'bg-slate-800 text-slate-300 border border-slate-700'
                   }`}>
-                    🏗️
+                    🏢
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-800 text-base">{bName}</h3>
+                    <h3 className="font-bold text-white text-base group-hover:text-indigo-300 transition">{bName}</h3>
                     {projObj?.location && (
-                      <span className="text-xs text-slate-500 block">{projObj.location}</span>
+                      <span className="text-xs text-slate-400 block mt-0.5">{projObj.location}</span>
                     )}
                   </div>
                 </div>
 
                 {canEdit && projObj && (
-                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={() => handleOpenEditProject(projObj)}
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                      className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 rounded-xl transition"
                       title="تعديل المشروع"
                     >
-                      <Edit3 className="w-3.5 h-3.5" />
+                      <Edit3 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteProject(projObj)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                      className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-xl transition"
                       title="حذف المشروع"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 )}
               </div>
 
               {/* Metrics Summary Inside Card */}
-              <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-100 text-xs">
-                <div className="p-2 bg-white rounded-xl border border-slate-100">
-                  <span className="text-slate-400 block mb-0.5">عدد الوحدات</span>
-                  <span className="font-bold text-slate-800 text-sm">
-                    {metrics.unitsCount} <span className="text-[11px] font-normal text-slate-500">وحدة</span>
+              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-800 text-xs">
+                <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800">
+                  <span className="text-slate-400 block mb-1">عدد الوحدات</span>
+                  <span className="font-bold text-white text-sm">
+                    {metrics.unitsCount} <span className="text-[11px] font-normal text-slate-400">وحدة</span>
                   </span>
                 </div>
 
-                <div className="p-2 bg-white rounded-xl border border-slate-100">
-                  <span className="text-slate-400 block mb-0.5">إجمالي المساحات</span>
-                  <span className="font-bold text-slate-800 text-sm">
-                    {formatNumber(metrics.totalArea)} <span className="text-[11px] font-normal text-slate-500">م²</span>
+                <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800">
+                  <span className="text-slate-400 block mb-1">إجمالي المساحات</span>
+                  <span className="font-bold text-white text-sm">
+                    {formatNumber(metrics.totalArea)} <span className="text-[11px] font-normal text-slate-400">م²</span>
                   </span>
                 </div>
 
-                <div className="p-2 bg-white rounded-xl border border-slate-100">
-                  <span className="text-slate-400 block mb-0.5">إجمالي المصروفات</span>
-                  <span className="font-bold text-red-600 text-sm truncate block" title={formatCurrency(metrics.totalExpenses)}>
+                <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800">
+                  <span className="text-slate-400 block mb-1">إجمالي المصروفات</span>
+                  <span className="font-bold text-red-400 text-sm truncate block" title={formatCurrency(metrics.totalExpenses)}>
                     {formatCurrency(metrics.totalExpenses)}
                   </span>
                 </div>
 
-                <div className="p-2 bg-white rounded-xl border border-slate-100">
-                  <span className="text-slate-400 block mb-0.5">تكلفة المتر المربع</span>
-                  <span className="font-bold text-indigo-700 text-sm truncate block" title={`${formatCurrency(Math.round(metrics.costPerM2))} / م²`}>
-                    {formatCurrency(Math.round(metrics.costPerM2))} <span className="text-[10px] font-normal text-slate-500">/م²</span>
+                <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800">
+                  <span className="text-slate-400 block mb-1">تكلفة المتر المربع</span>
+                  <span className="font-bold text-cyan-400 text-sm truncate block" title={`${formatCurrency(Math.round(metrics.costPerM2))} / م²`}>
+                    {formatCurrency(Math.round(metrics.costPerM2))} <span className="text-[10px] font-normal text-slate-400">/م²</span>
                   </span>
                 </div>
               </div>
 
-              <div className="mt-3 pt-2.5 flex items-center justify-between text-xs text-indigo-600 font-semibold">
+              <div className="mt-4 pt-3 flex items-center justify-between text-xs text-indigo-400 font-bold border-t border-slate-800/60">
                 <span>{isSelected ? '✓ المشروع المحدد حالياً' : 'انقر لعرض تفاصيل التكلفة والوحدات'}</span>
-                <ArrowUpRight className="w-3.5 h-3.5" />
+                <ArrowUpRight className="w-4 h-4" />
               </div>
             </div>
           );
         })}
 
         {allBuildingNames.length === 0 && (
-          <div className="col-span-full p-8 bg-white rounded-2xl border border-dashed border-slate-300 text-center space-y-3">
-            <Building2 className="w-12 h-12 text-slate-400 mx-auto" />
-            <div className="text-slate-700 font-bold text-lg">لم تقم بإدخال أي عمارة أو مشروع بعد</div>
-            <p className="text-slate-500 text-sm max-w-md mx-auto">
+          <div className="col-span-full p-12 glass-panel rounded-3xl text-center space-y-4">
+            <Building2 className="w-16 h-16 text-slate-500 mx-auto" />
+            <div className="text-white font-bold text-xl">لم تقم بإدخال أي عمارة أو مشروع بعد</div>
+            <p className="text-slate-400 text-sm max-w-md mx-auto">
               ابدأ بإدخال اسم العمارة أو المشروع أولاً، ليظهر تلقائياً في قائمة الوحدات والمصروفات ويتم حساب تكلفة المتر والوحدات بدقة.
             </p>
             {canEdit && (
               <button
                 onClick={handleOpenAddProject}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold transition shadow-lg shadow-indigo-600/30"
               >
                 <Plus className="w-4 h-4" />
                 <span>إضافة عمارة أو مشروع الآن</span>
