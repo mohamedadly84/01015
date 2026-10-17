@@ -318,18 +318,21 @@ export const SalesView: React.FC<Props> = ({
   return (
     <div className="space-y-6">
       {/* Header and Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-8 rounded-3xl glass-panel border border-indigo-500/20 shadow-2xl shadow-indigo-500/10 mb-6">
         <div>
-          <div className="flex items-center gap-2">
-            <FileText className="w-6 h-6 text-emerald-600" />
-            <h2 className="text-2xl font-bold text-slate-800">عقود البيع وجدولة الأقساط</h2>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl p-2.5 rounded-2xl bg-emerald-500/20 border border-emerald-500/30">📜</span>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-emerald-200 to-cyan-300 bg-clip-text text-transparent">
+                إدارة العقود والعمليات العقارية
+              </h2>
+              <p className="text-slate-300 text-sm mt-1 font-medium">
+                إبرام عقود البيع، توليد جداول الأقساط آلياً، وطباعة العقود الرسمية
+              </p>
+            </div>
           </div>
-          <p className="text-slate-500 text-sm mt-0.5">
-            إبرام عقود البيع، توليد جداول الأقساط آلياً، وطباعة العقود الرسمية
-          </p>
         </div>
-
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition border border-slate-200"
@@ -350,7 +353,7 @@ export const SalesView: React.FC<Props> = ({
       </div>
 
       {/* Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+      <div className="glass-panel p-5 rounded-3xl shadow-xl shadow-indigo-500/5 flex items-center justify-between border border-indigo-500/20">
         <div className="relative w-full max-w-md">
           <Search className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
           <input
