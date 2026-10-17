@@ -32,10 +32,12 @@ import { ExpensesView } from './components/views/ExpensesView';
 import { ReportsView } from './components/views/ReportsView';
 import { UsersView } from './components/views/UsersView';
 import { SettingsView } from './components/views/SettingsView';
+import { PublicUnitView } from './components/views/PublicUnitView';
+import { PublicCatalogView } from './components/views/PublicCatalogView';
 
 import {
   Building2, LogOut, CheckCircle2, RefreshCw, KeyRound, Lock, User as UserIcon,
-  Cloud, CloudOff
+  Cloud, CloudOff, Globe, Grid
 } from 'lucide-react';
 
 export default function App() {
@@ -54,6 +56,32 @@ export default function App() {
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncNotice, setSyncNotice] = useState<string>('سحابي متصل (مزامنة حية لحظية)');
+
+  // Check if current URL contains a scanned unit parameter e.g. ?unit=123
+  const [publicUnitId, setPublicUnitId] = useState<number | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const unitParam = params.get('unit');
+      if (unitParam) {
+        const id = parseInt(unitParam, 10);
+        return isNaN(id) ? null : id;
+      }
+    }
+    return null;
+  });
+
+  // Check if visitor catalog portal is requested e.g. ?mode=visitor, ?catalog=1, ?portal=public
+  const [isVisitorMode, setIsVisitorMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return (
+        params.get('mode') === 'visitor' ||
+        params.get('catalog') === '1' ||
+        params.get('portal') === 'public'
+      );
+    }
+    return false;
+  });
 
   // Login form state
   const [loginUsername, setLoginUsername] = useState('');
@@ -172,6 +200,45 @@ export default function App() {
     setLoginPassword('');
   };
 
+  // If accessed via QR Code scan (?unit=id), render the live public unit card directly without login screen!
+  if (publicUnitId !== null) {
+    return (
+      <PublicUnitView
+        unitId={publicUnitId}
+        initialDb={db}
+        onGoToApp={() => {
+          // Clear query param and navigate to main app
+          window.history.replaceState({}, '', window.location.pathname);
+          setPublicUnitId(null);
+          setIsVisitorMode(false);
+        }}
+        onGoToCatalog={() => {
+          // Switch to public visitor catalog
+          window.history.replaceState({}, '', '?mode=visitor');
+          setPublicUnitId(null);
+          setIsVisitorMode(true);
+        }}
+      />
+    );
+  }
+
+  // If accessed via visitor portal link (?mode=visitor or clicked visitor catalog button)
+  if (isVisitorMode) {
+    return (
+      <PublicCatalogView
+        initialDb={db}
+        onGoToLogin={() => {
+          window.history.replaceState({}, '', window.location.pathname);
+          setIsVisitorMode(false);
+        }}
+        onSelectUnit={(id) => {
+          window.history.replaceState({}, '', `?unit=${id}`);
+          setPublicUnitId(id);
+        }}
+      />
+    );
+  }
+
   // If user is not logged in, render the login page
   if (!currentUser) {
     return (
@@ -224,11 +291,29 @@ export default function App() {
 
             <button
               type="submit"
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-600/30"
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-600/30 cursor-pointer"
             >
               تسجيل الدخول للنظام
             </button>
           </form>
+
+          {/* Visitor Public Catalog Link */}
+          <div className="pt-4 border-t border-slate-100 text-center space-y-2">
+            <button
+              type="button"
+              onClick={() => {
+                window.history.replaceState({}, '', '?mode=visitor');
+                setIsVisitorMode(true);
+              }}
+              className="w-full py-3 px-4 bg-gradient-to-r from-slate-900 to-indigo-950 hover:from-slate-800 hover:to-indigo-900 text-white font-bold rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 border border-indigo-500/30 shadow-md cursor-pointer"
+            >
+              <Globe className="w-4 h-4 text-indigo-400" />
+              <span>تصفح معرض الوحدات كزائر (بدون تسجيل دخول) 🌐</span>
+            </button>
+            <p className="text-[11px] text-slate-400">
+              معرض مخصص للزائرين والعملاء لمعاينة الوحدات ورسوماتها التوضيحية
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -294,7 +379,21 @@ export default function App() {
           </div>
 
           {/* User profile & Logout */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Direct Visitor Portal Link / Preview */}
+            <button
+              onClick={() => {
+                window.history.replaceState({}, '', '?mode=visitor');
+                setIsVisitorMode(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition border border-indigo-200 cursor-pointer shadow-xs"
+              title="معاينة موقع ومعرض الزوار كما يراه العملاء"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">معرض الزوار 🌐</span>
+              <span className="sm:hidden">المعرض</span>
+            </button>
+
             <div className="text-left hidden sm:block">
               <span className="font-bold text-slate-800 text-sm block">
                 {currentUser.fullName || currentUser.username}
@@ -308,7 +407,7 @@ export default function App() {
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-700 rounded-xl text-xs font-bold transition border border-slate-200"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-700 rounded-xl text-xs font-bold transition border border-slate-200 cursor-pointer"
               title="تسجيل الخروج"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -447,6 +546,9 @@ export default function App() {
       {selectedQrUnit && (
         <QRCodeModal
           unit={selectedQrUnit}
+          companyName={db.settings.name}
+          companyPhone={db.settings.phone}
+          companyAddress={db.settings.address}
           onClose={() => setSelectedQrUnit(null)}
         />
       )}

@@ -33,7 +33,7 @@ export const initialData: AppDatabase = {
   ],
   expenses: [],
   settings: {
-    name: 'مؤسسة التطوير العقاري',
+    name: '',
     phone: '',
     taxNumber: '',
     address: '',

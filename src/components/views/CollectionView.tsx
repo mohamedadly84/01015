@@ -94,8 +94,8 @@ export const CollectionView: React.FC<Props> = ({
     const matchesSearch =
       inst.id.toString().includes(q) ||
       inst.contractId.toString().includes(q) ||
-      (customer && customer.name.toLowerCase().includes(q)) ||
-      (unit && unit.unitNumber.toLowerCase().includes(q));
+      (customer && customer.name && customer.name.toLowerCase().includes(q)) ||
+      (unit && unit.unitNumber && unit.unitNumber.toLowerCase().includes(q));
 
     const matchesStatus = statusFilter === 'الكل' || inst.status === statusFilter;
     const isOverdue = inst.dueDate < today && inst.status !== 'مدفوع';

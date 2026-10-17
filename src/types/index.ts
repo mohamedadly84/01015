@@ -21,6 +21,14 @@ export interface Unit {
   area: number; // m2
   price: number; // EGP
   status: UnitStatus;
+  floorPlanImage?: string; // صورة الرسم التوضيحي / كروكي معماري (Base64 أو رابط)
+  floorPlanPdf?: string; // رابط أو ملف PDF توضيحي
+  roomsCount?: number; // عدد الغرف
+  bathroomsCount?: number; // عدد الحمامات
+  balconiesCount?: number; // عدد البلكونات / التراس
+  finishingType?: string; // نوع التشطيب (نصف تشطيب، سوبر لوكس، ألترا لوكس)
+  orientation?: string; // الواجهة (بحري، شرقي، قبلي، غربي، ناصية)
+  description?: string; // مميزات ووصف الوحدة
 }
 
 export interface Customer {
@@ -102,6 +110,7 @@ export interface Project {
   description?: string;
   notes?: string;
   createdAt?: string;
+  masterPlanImage?: string; // صورة أو كروكي المخطط العام للمشروع / العمارات
 }
 
 export interface CompanySettings {
@@ -110,6 +119,7 @@ export interface CompanySettings {
   taxNumber: string;
   address: string;
   currency: string;
+  masterPlanImage?: string; // صورة المخطط العام للمشروع ككل
 }
 
 export interface AppDatabase {

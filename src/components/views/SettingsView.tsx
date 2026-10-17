@@ -186,6 +186,52 @@ export const SettingsView: React.FC<Props> = ({ db, onUpdateDb, onSyncServer }) 
               />
             </div>
 
+            {/* Master Plan Image / Blueprint */}
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+              <label className="block text-xs font-bold text-slate-800">
+                صورة المخطط العام للعمارات (Master Site Plan)
+              </label>
+              <p className="text-[11px] text-slate-500">
+                ارفع صورة المخطط العام أو كروكي توزيع العمارات، وستظهر في صفحة الزائرين والمعرض العام.
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = ev => {
+                        const base64 = ev.target?.result as string;
+                        setSettings({ ...settings, masterPlanImage: base64 });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                />
+                {settings.masterPlanImage && (
+                  <button
+                    type="button"
+                    onClick={() => setSettings({ ...settings, masterPlanImage: undefined })}
+                    className="text-xs text-rose-600 hover:text-rose-700 font-semibold"
+                  >
+                    حذف الصورة
+                  </button>
+                )}
+              </div>
+              {settings.masterPlanImage && (
+                <div className="mt-2 h-24 w-auto rounded-lg overflow-hidden border border-slate-200 inline-block">
+                  <img
+                    src={settings.masterPlanImage}
+                    alt="معاينة المخطط العام"
+                    className="h-full w-auto object-contain"
+                  />
+                </div>
+              )}
+            </div>
+
             <button
               type="submit"
               className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-sm"

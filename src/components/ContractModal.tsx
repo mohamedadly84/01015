@@ -25,7 +25,25 @@ export const ContractModal: React.FC<Props> = ({
   const [isExportingImg, setIsExportingImg] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  if (!contract || !customer || !unit) return null;
+  if (!contract) return null;
+
+  if (!customer || !unit) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center space-y-4 shadow-xl border border-slate-200">
+          <p className="text-sm font-bold text-slate-800">
+            تعذر العثور على بيانات العميل أو الوحدة المرتبطة بهذا العقد
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+          >
+            إغلاق
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const remainingAmount = contract.totalPrice - contract.downPayment;
   const baseFilename = `عقد_بيع_وحدة_${unit.unitNumber}_${customer.name}`;

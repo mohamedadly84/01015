@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AppDatabase, User, UserRole } from '../../types';
+import { setCurrentUser } from '../../services/storage';
 import { Shield, Plus, Edit2, Trash2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 interface Props {
@@ -65,6 +66,14 @@ export const UsersView: React.FC<Props> = ({ db, currentUser, onUpdateDb }) => {
         }
         return u;
       });
+      if (editingUserId === currentUser.id) {
+        setCurrentUser({
+          ...currentUser,
+          fullName: fullName.trim(),
+          role,
+          active,
+        });
+      }
       onUpdateDb({ ...db, users: updatedUsers });
     } else {
       const exists = db.users.some(u => u.username.toLowerCase() === username.trim().toLowerCase());

@@ -30,13 +30,13 @@ export const CustomersView: React.FC<Props> = ({
   const [notes, setNotes] = useState('');
   const [formError, setFormError] = useState('');
 
-  const filteredCustomers = db.customers.filter(c => {
+  const filteredCustomers = (db.customers || []).filter(c => {
     const q = searchTerm.toLowerCase();
     return (
-      c.name.toLowerCase().includes(q) ||
-      c.phone.includes(q) ||
-      c.nationalId.includes(q) ||
-      c.address.toLowerCase().includes(q)
+      (c.name && c.name.toLowerCase().includes(q)) ||
+      (c.phone && c.phone.includes(q)) ||
+      (c.nationalId && c.nationalId.includes(q)) ||
+      (c.address && c.address.toLowerCase().includes(q))
     );
   });
 

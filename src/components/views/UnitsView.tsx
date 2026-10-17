@@ -4,9 +4,11 @@ import {
   formatCurrency, formatNumber, downloadCSV,
   getBuildingList, calculateBuildingMetrics
 } from '../../utils/helpers';
+import { UnitFloorPlan } from '../UnitFloorPlan';
 import {
   Building, Plus, Search, Filter, QrCode, Trash2, Edit2, Download,
-  CheckCircle, AlertCircle, Eye, Calculator, Sparkles
+  CheckCircle, AlertCircle, Eye, Calculator, Sparkles, Globe,
+  Compass, FileText, Upload, X, Copy, Check
 } from 'lucide-react';
 
 interface Props {
@@ -39,7 +41,17 @@ export const UnitsView: React.FC<Props> = ({
   const [formArea, setFormArea] = useState<number>(120);
   const [formPrice, setFormPrice] = useState<number>(1500000);
   const [formStatus, setFormStatus] = useState<UnitStatus>('متاحة');
+  const [formRoomsCount, setFormRoomsCount] = useState<number>(3);
+  const [formBathroomsCount, setFormBathroomsCount] = useState<number>(2);
+  const [formBalconiesCount, setFormBalconiesCount] = useState<number>(1);
+  const [formFinishingType, setFormFinishingType] = useState<string>('سوبر لوكس');
+  const [formOrientation, setFormOrientation] = useState<string>('بحري');
+  const [formFloorPlanImage, setFormFloorPlanImage] = useState<string>('');
   const [formError, setFormError] = useState('');
+
+  // Blueprint / Floor Plan quick preview modal
+  const [previewFloorPlanUnit, setPreviewFloorPlanUnit] = useState<Unit | null>(null);
+  const [copiedCatalog, setCopiedCatalog] = useState(false);
 
   // Extract unique buildings from registered projects, units and expenses
   const buildings = getBuildingList(db);
@@ -63,6 +75,12 @@ export const UnitsView: React.FC<Props> = ({
     setFormArea(120);
     setFormPrice(1500000);
     setFormStatus('متاحة');
+    setFormRoomsCount(3);
+    setFormBathroomsCount(2);
+    setFormBalconiesCount(1);
+    setFormFinishingType('سوبر لوكس');
+    setFormOrientation('بحري');
+    setFormFloorPlanImage('');
     setFormError('');
     setIsFormOpen(false);
   };
@@ -87,8 +105,33 @@ export const UnitsView: React.FC<Props> = ({
     setFormArea(unit.area);
     setFormPrice(unit.price);
     setFormStatus(unit.status);
+    setFormRoomsCount(unit.roomsCount || (unit.area >= 160 ? 4 : unit.area >= 120 ? 3 : 2));
+    setFormBathroomsCount(unit.bathroomsCount || (unit.area >= 140 ? 2 : 1));
+    setFormBalconiesCount(unit.balconiesCount || 1);
+    setFormFinishingType(unit.finishingType || 'سوبر لوكس');
+    setFormOrientation(unit.orientation || 'بحري');
+    setFormFloorPlanImage(unit.floorPlanImage || '');
     setFormError('');
     setIsFormOpen(true);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 4 * 1024 * 1024) {
+      setFormError('حجم الصورة كبير جداً، يرجى اختيار صورة أقل من 4 ميجابايت');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setFormFloorPlanImage(reader.result);
+        setFormError('');
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveUnit = (e: React.FormEvent) => {
@@ -137,6 +180,12 @@ export const UnitsView: React.FC<Props> = ({
               area: Number(formArea),
               price: Number(formPrice),
               status: formStatus,
+              roomsCount: Number(formRoomsCount),
+              bathroomsCount: Number(formBathroomsCount),
+              balconiesCount: Number(formBalconiesCount),
+              finishingType: formFinishingType,
+              orientation: formOrientation,
+              floorPlanImage: formFloorPlanImage || undefined,
             }
           : u
       );
@@ -151,6 +200,12 @@ export const UnitsView: React.FC<Props> = ({
         area: Number(formArea),
         price: Number(formPrice),
         status: formStatus,
+        roomsCount: Number(formRoomsCount),
+        bathroomsCount: Number(formBathroomsCount),
+        balconiesCount: Number(formBalconiesCount),
+        finishingType: formFinishingType,
+        orientation: formOrientation,
+        floorPlanImage: formFloorPlanImage || undefined,
       };
       onUpdateDb({ ...db, units: [...db.units, newUnit], projects: updatedProjects });
     }
@@ -158,44 +213,52 @@ export const UnitsView: React.FC<Props> = ({
     resetForm();
   };
 
-  const handleDeleteUnit = (unitId: number) => {
-    const hasContract = db.contracts.some(c => c.unitId === unitId);
+  const handleDeleteUnit = (id: number) => {
+    const hasContract = db.contracts.some(c => c.unitId === id);
     if (hasContract) {
-      alert('لا يمكن حذف هذه الوحدة لوجود عقد بيع مسجل عليها.');
+      alert('لا يمكن حذف هذه الوحدة لأنها مرتبطة بعقد بيع مسجل في النظام.');
       return;
     }
-    if (confirm('هل أنت متأكد من رغبتك في حذف هذه الوحدة؟')) {
-      const updatedUnits = db.units.filter(u => u.id !== unitId);
+    if (window.confirm('هل أنت متأكد من رغبتك في حذف هذه الوحدة نهائياً؟')) {
+      const updatedUnits = db.units.filter(u => u.id !== id);
       onUpdateDb({ ...db, units: updatedUnits });
     }
   };
 
   const handleQuickStatusChange = (unitId: number, newStatus: UnitStatus) => {
-    const updatedUnits = db.units.map(u => (u.id === unitId ? { ...u, status: newStatus } : u));
+    const updatedUnits = db.units.map(u =>
+      u.id === unitId ? { ...u, status: newStatus } : u
+    );
     onUpdateDb({ ...db, units: updatedUnits });
   };
 
-  const handleExportCSV = () => {
-    const headers = [
-      'رقم الوحدة', 'العمارة', 'الدور', 'المساحة (م²)',
-      'التكلفة المحسوبة (ج.م)', 'السعر المطلوب (ج.م)', 'صافي الربح التقديري', 'الحالة'
-    ];
-    const rows = db.units.map(u => {
-      const metrics = calculateBuildingMetrics(db, u.building);
-      const unitCost = Math.round(u.area * metrics.costPerM2);
-      const profit = Math.round(u.price - unitCost);
-      return [
-        u.unitNumber, u.building, u.floor, u.area,
-        unitCost, u.price, profit, u.status
-      ];
-    });
-    downloadCSV('قائمة_الوحدات_العقارية_مع_التكاليف', headers, rows);
+  const handleCopyCatalogLink = () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const catalogUrl = `${origin}/?mode=visitor`;
+    navigator.clipboard.writeText(catalogUrl);
+    setCopiedCatalog(true);
+    setTimeout(() => setCopiedCatalog(false), 2500);
   };
 
-  // Compute live preview metrics for the unit form
+  const handleExportCSV = () => {
+    const headers = ['رقم الوحدة', 'العمارة/المشروع', 'الدور', 'المساحة (م²)', 'السعر (ج.م)', 'الحالة'];
+    const rows = filteredUnits.map(u => [
+      u.unitNumber,
+      u.building,
+      u.floor,
+      u.area,
+      u.price,
+      u.status,
+    ]);
+    downloadCSV('units_list.csv', headers, rows);
+  };
+
+  // Cost metrics for active form building
   const activeFormBuilding = (isAddingCustomBuilding ? newBuildingName : formBuilding).trim();
   const formBuildingMetrics = activeFormBuilding ? calculateBuildingMetrics(db, activeFormBuilding) : null;
-  const formCalculatedCost = formBuildingMetrics ? Math.round(formArea * formBuildingMetrics.costPerM2) : 0;
+  const formCalculatedCost = formBuildingMetrics && formArea > 0
+    ? Math.round(formBuildingMetrics.costPerM2 * formArea)
+    : 0;
   const formEstimatedProfit = formPrice - formCalculatedCost;
   const formMargin = formPrice > 0 ? Math.round((formEstimatedProfit / formPrice) * 100) : 0;
 
@@ -209,11 +272,30 @@ export const UnitsView: React.FC<Props> = ({
             <h2 className="text-2xl font-bold text-slate-800">إدارة الوحدات السكنية والعقارات</h2>
           </div>
           <p className="text-slate-500 text-sm mt-0.5">
-            عرض وتعديل الوحدات، الأسعار، المواصفات، وتوليد رموز QR Code
+            عرض وتعديل الوحدات، المخططات الهندسية، الأسعار، وتوليد رموز QR Code
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Visitor Public Catalog Link & Copy */}
+          <button
+            onClick={() => window.open('/?mode=visitor', '_blank')}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-sm font-semibold transition border border-indigo-200 shadow-xs cursor-pointer"
+            title="فتح موقع ومعرض الوحدات المخصص للزائرين"
+          >
+            <Globe className="w-4 h-4 text-indigo-600" />
+            <span>معرض الزوار 🌐</span>
+          </button>
+
+          <button
+            onClick={handleCopyCatalogLink}
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition border border-slate-200 cursor-pointer"
+            title="نسخ رابط معرض الزوار لإرساله للعميل عبر واتساب"
+          >
+            {copiedCatalog ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+            <span>{copiedCatalog ? 'تم نسخ الرابط' : 'نسخ رابط الزوار'}</span>
+          </button>
+
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition border border-slate-200"
@@ -221,10 +303,11 @@ export const UnitsView: React.FC<Props> = ({
             <Download className="w-4 h-4" />
             <span>تصدير Excel</span>
           </button>
+
           {canEdit && (
             <button
               onClick={handleOpenAdd}
-              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition shadow-sm"
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition shadow-sm cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>إضافة وحدة جديدة</span>
@@ -253,9 +336,9 @@ export const UnitsView: React.FC<Props> = ({
             <select
               value={filterBuilding}
               onChange={e => setFilterBuilding(e.target.value)}
-              className="py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="الكل">جميع العمائر</option>
+              <option value="الكل">جميع العمارات ({buildings.length})</option>
               {buildings.map(b => (
                 <option key={b} value={b}>{b}</option>
               ))}
@@ -267,9 +350,9 @@ export const UnitsView: React.FC<Props> = ({
             <select
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
-              className="py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="الكل">جميع الحالات</option>
+              <option value="الكل">الكل</option>
               <option value="متاحة">متاحة</option>
               <option value="محجوزة">محجوزة</option>
               <option value="مباعة">مباعة</option>
@@ -278,25 +361,27 @@ export const UnitsView: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Add / Edit Unit Modal */}
+      {/* Add / Edit Unit Modal Form */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h3 className="font-bold text-slate-800 text-lg">
-                {editingUnitId ? 'تعديل بيانات الوحدة' : 'إضافة وحدة جديدة'}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-xl w-full p-6 border border-slate-200 animate-in fade-in zoom-in-95 duration-150 my-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Building className="w-5 h-5 text-blue-600" />
+                <span>{editingUnitId ? 'تعديل بيانات الوحدة' : 'إضافة وحدة سكنية جديدة'}</span>
               </h3>
               <button
+                type="button"
                 onClick={resetForm}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition"
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveUnit} className="p-6 space-y-4">
+            <form onSubmit={handleSaveUnit} className="space-y-4 pt-4">
               {formError && (
-                <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl flex items-center gap-2 border border-red-200">
+                <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{formError}</span>
                 </div>
@@ -362,11 +447,12 @@ export const UnitsView: React.FC<Props> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">الدور</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">الدور / الطابق *</label>
                   <input
                     type="number"
+                    required
                     min="0"
                     value={formFloor}
                     onChange={e => setFormFloor(Number(e.target.value))}
@@ -395,6 +481,118 @@ export const UnitsView: React.FC<Props> = ({
                     <option value="محجوزة">محجوزة</option>
                     <option value="مباعة">مباعة</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Architectural Specifications Section */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Compass className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>مواصفات التقسيم الداخلي والرسم التوضيحي:</span>
+                </span>
+
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] text-slate-600 mb-1">عدد الغرف</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={formRoomsCount}
+                      onChange={e => setFormRoomsCount(Number(e.target.value))}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-600 mb-1">عدد الحمامات</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="6"
+                      value={formBathroomsCount}
+                      onChange={e => setFormBathroomsCount(Number(e.target.value))}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-600 mb-1">عدد البلكونات</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="6"
+                      value={formBalconiesCount}
+                      onChange={e => setFormBalconiesCount(Number(e.target.value))}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] text-slate-600 mb-1">الواجهة</label>
+                    <select
+                      value={formOrientation}
+                      onChange={e => setFormOrientation(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs"
+                    >
+                      <option value="بحري">بحري</option>
+                      <option value="شرقي">شرقي</option>
+                      <option value="قبلي">قبلي</option>
+                      <option value="غربي">غربي</option>
+                      <option value="ناصية بحري">ناصية بحري</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-600 mb-1">نوع التشطيب</label>
+                    <select
+                      value={formFinishingType}
+                      onChange={e => setFormFinishingType(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs"
+                    >
+                      <option value="سوبر لوكس">سوبر لوكس</option>
+                      <option value="ألترا لوكس">ألترا لوكس</option>
+                      <option value="نصف تشطيب">نصف تشطيب</option>
+                      <option value="بدون تشطيب">بدون تشطيب (على الطوب)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Optional floor plan image upload */}
+                <div>
+                  <label className="block text-[11px] text-slate-600 mb-1">
+                    رفع صورة كروكي / مسقط معماري مخصص (اختياري):
+                  </label>
+                  {formFloorPlanImage ? (
+                    <div className="relative inline-block border border-slate-300 rounded-xl overflow-hidden bg-slate-900 p-1">
+                      <img
+                        src={formFloorPlanImage}
+                        alt="Floor Plan preview"
+                        className="h-24 w-auto object-contain rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormFloorPlanImage('')}
+                        className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 transition"
+                        title="إزالة الصورة"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-2 p-2.5 bg-white border border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-indigo-500 transition text-xs text-slate-500">
+                      <Upload className="w-4 h-4 text-indigo-600" />
+                      <span>اضغط لاختيار صورة كروكي أو مسقط أفقي للوحدة (PNG/JPG)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    * في حال عدم رفع صورة، يقوم البرنامج بتوليد رسم هندسي توضيحي ومخطط ذكي للوحدة تلقائياً وفقاً لمساحتها وتوزيع غرفها.
+                  </span>
                 </div>
               </div>
 
@@ -447,14 +645,14 @@ export const UnitsView: React.FC<Props> = ({
               <div className="flex gap-2 pt-4 border-t border-slate-100">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition"
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition cursor-pointer"
                 >
                   {editingUnitId ? 'حفظ التعديلات' : 'إضافة الوحدة'}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition"
                 >
                   إلغاء
                 </button>
@@ -464,38 +662,90 @@ export const UnitsView: React.FC<Props> = ({
         </div>
       )}
 
+      {/* Blueprint / Floor Plan Quick Preview Modal */}
+      {previewFloorPlanUnit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 text-right space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  المخطط الهندسي التوضيحي • وحدة {previewFloorPlanUnit.unitNumber} ({previewFloorPlanUnit.building})
+                </h3>
+                <p className="text-xs text-slate-400">
+                  المساحة: {previewFloorPlanUnit.area} م² • الدور {previewFloorPlanUnit.floor} • الحالة: {previewFloorPlanUnit.status}
+                </p>
+              </div>
+              <button
+                onClick={() => setPreviewFloorPlanUnit(null)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800"
+              >
+                ✕
+              </button>
+            </div>
+
+            <UnitFloorPlan
+              unit={previewFloorPlanUnit}
+              heightClass="h-64 sm:h-72"
+              showControls={true}
+              interactive={true}
+            />
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => {
+                  const targetUnit = previewFloorPlanUnit;
+                  setPreviewFloorPlanUnit(null);
+                  onOpenQr(targetUnit);
+                }}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>فتح رمز QR والبروشور PDF</span>
+              </button>
+              <button
+                onClick={() => setPreviewFloorPlanUnit(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition"
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Units Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
-            <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 font-bold">
+            <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
               <tr>
                 <th className="py-3 px-3">رقم الوحدة</th>
-                <th className="py-3 px-3">العمارة</th>
+                <th className="py-3 px-3">العمارة / المشروع</th>
                 <th className="py-3 px-3">الدور</th>
                 <th className="py-3 px-3">المساحة</th>
-                <th className="py-3 px-3">التكلفة المحسوبة (بالمساحة)</th>
+                <th className="py-3 px-3">المخطط 📐</th>
+                <th className="py-3 px-3">التكلفة المحسوبة</th>
                 <th className="py-3 px-3">السعر المطلوب</th>
-                <th className="py-3 px-3">صافي الربح التقديري</th>
-                <th className="py-3 px-3">الحالة</th>
-                <th className="py-3 px-3 text-center">QR Code</th>
+                <th className="py-3 px-3">الربح المتوقع</th>
+                <th className="py-3 px-3">الحالة اللحظية</th>
+                <th className="py-3 px-3 text-center">QR والبروشور</th>
                 {canEdit && <th className="py-3 px-3 text-center">إجراءات</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredUnits.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-slate-400">
-                    لا توجد وحدات تطابق معايير البحث
+                  <td colSpan={canEdit ? 11 : 10} className="py-8 text-center text-slate-400 text-sm">
+                    لا توجد وحدات مطابقة للبحث أو التصفية الحالية
                   </td>
                 </tr>
               ) : (
                 filteredUnits.map(unit => {
-                  const hasContract = db.contracts.some(c => c.unitId === unit.id);
-                  const metrics = calculateBuildingMetrics(db, unit.building);
-                  const unitCost = Math.round(unit.area * metrics.costPerM2);
-                  const profit = Math.round(unit.price - unitCost);
+                  const bMetrics = calculateBuildingMetrics(db, unit.building);
+                  const unitCost = Math.round(bMetrics.costPerM2 * unit.area);
+                  const profit = unit.price - unitCost;
                   const margin = unit.price > 0 ? Math.round((profit / unit.price) * 100) : 0;
+                  const hasContract = db.contracts.some(c => c.unitId === unit.id);
 
                   return (
                     <tr key={unit.id} className="hover:bg-slate-50/80 transition">
@@ -510,6 +760,16 @@ export const UnitsView: React.FC<Props> = ({
                       </td>
                       <td className="py-3 px-3 font-bold text-blue-700">
                         {unit.area} م²
+                      </td>
+                      <td className="py-3 px-3">
+                        <button
+                          onClick={() => setPreviewFloorPlanUnit(unit)}
+                          className="px-2 py-1 bg-slate-100 hover:bg-indigo-50 text-indigo-700 hover:text-indigo-800 rounded-lg text-xs font-semibold transition border border-slate-200 flex items-center gap-1 cursor-pointer"
+                          title="معاينة المخطط والرسم التوضيحي"
+                        >
+                          <Compass className="w-3.5 h-3.5" />
+                          <span>معاينة</span>
+                        </button>
                       </td>
                       <td className="py-3 px-3 font-bold text-rose-700 bg-rose-50/30">
                         {formatCurrency(unitCost)}
@@ -526,7 +786,7 @@ export const UnitsView: React.FC<Props> = ({
                           <select
                             value={unit.status}
                             onChange={e => handleQuickStatusChange(unit.id, e.target.value as UnitStatus)}
-                            className={`text-xs font-bold py-1 px-2.5 rounded-lg border focus:outline-none ${
+                            className={`text-xs font-bold py-1 px-2.5 rounded-lg border focus:outline-none cursor-pointer ${
                               unit.status === 'متاحة'
                                 ? 'bg-blue-50 text-blue-700 border-blue-200'
                                 : unit.status === 'محجوزة'
@@ -555,8 +815,8 @@ export const UnitsView: React.FC<Props> = ({
                       <td className="py-3 px-3 text-center">
                         <button
                           onClick={() => onOpenQr(unit)}
-                          title="عرض رمز QR Code"
-                          className="p-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 rounded-lg transition"
+                          title="عرض رمز QR Code والبروشور PDF"
+                          className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition border border-indigo-200 cursor-pointer"
                         >
                           <QrCode className="w-4 h-4" />
                         </button>
@@ -566,7 +826,7 @@ export const UnitsView: React.FC<Props> = ({
                           <div className="flex items-center justify-center gap-1.5">
                             <button
                               onClick={() => handleOpenEdit(unit)}
-                              title="تعديل الوحدة"
+                              title="تعديل الوحدة والمخطط"
                               className="p-1.5 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition"
                             >
                               <Edit2 className="w-4 h-4" />

@@ -142,7 +142,8 @@ export async function exportElementToPdf(
       }
     }
 
-    pdf.save(`${filename}.pdf`);
+    const cleanFilename = filename.toLowerCase().endsWith('.pdf') ? filename : `${filename}.pdf`;
+    pdf.save(cleanFilename);
     return { success: true };
   } catch (err: any) {
     console.error('PDF export error:', err);
@@ -163,7 +164,8 @@ export async function exportElementToImage(
   try {
     const { dataUrl } = await captureFullElement(elementId);
     const link = document.createElement('a');
-    link.download = `${filename}.png`;
+    const cleanFilename = filename.toLowerCase().endsWith('.png') ? filename : `${filename}.png`;
+    link.download = cleanFilename;
     link.href = dataUrl;
     document.body.appendChild(link);
     link.click();

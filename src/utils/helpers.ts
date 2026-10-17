@@ -50,11 +50,19 @@ export function numberToArabicWords(num: number): string {
     return result;
   }
 
-  const millions = Math.floor(num / 1000000);
+  const billions = Math.floor(num / 1000000000);
+  const millions = Math.floor((num % 1000000000) / 1000000);
   const thousands = Math.floor((num % 1000000) / 1000);
   const remain = Math.floor(num % 1000);
 
   const parts: string[] = [];
+
+  if (billions > 0) {
+    if (billions === 1) parts.push('مليار');
+    else if (billions === 2) parts.push('ملياران');
+    else if (billions >= 3 && billions <= 10) parts.push(convertGroup(billions) + ' مليارات');
+    else parts.push(convertGroup(billions) + ' مليار');
+  }
 
   if (millions > 0) {
     if (millions === 1) parts.push('مليون');
@@ -96,11 +104,25 @@ export function downloadCSV(filename: string, headers: string[], rows: (string |
   URL.revokeObjectURL(url);
 }
 
-// Generate future date helper
+// Generate future date helper with exact month clamping and zero timezone offset drift
 export function addMonths(dateStr: string, months: number): string {
-  const d = new Date(dateStr);
-  d.setMonth(d.getMonth() + months);
-  return d.toISOString().split('T')[0];
+  if (!dateStr) return new Date().toISOString().split('T')[0];
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  let year = parseInt(parts[0], 10);
+  let month = parseInt(parts[1], 10) - 1 + months; // 0-indexed
+  let day = parseInt(parts[2], 10);
+
+  year += Math.floor(month / 12);
+  month = ((month % 12) + 12) % 12;
+
+  // Clamp day to max days in target month (e.g. Feb 28/29, April 30)
+  const maxDays = new Date(year, month + 1, 0).getDate();
+  day = Math.min(day, maxDays);
+
+  const mm = String(month + 1).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
+  return `${year}-${mm}-${dd}`;
 }
 
 import type { AppDatabase, Unit } from '../types';
