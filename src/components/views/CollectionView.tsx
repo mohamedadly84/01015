@@ -132,7 +132,19 @@ export const CollectionView: React.FC<Props> = ({
   return (
     <div className="space-y-6">
       {/* Header and Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-8 rounded-3xl glass-panel border border-indigo-500/20 shadow-2xl shadow-indigo-500/10 mb-6">
+        <div>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl p-2.5 rounded-2xl bg-emerald-500/20 border border-emerald-500/30">💰</span>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-emerald-200 to-cyan-300 bg-clip-text text-transparent">
+                إدارة التحصيلات والأقساط
+              </h2>
+              <p className="text-slate-300 text-sm mt-1 font-medium">متابعة المدفوعات والأقساط المستحقة وتقارير التحصيل بدقة</p>
+            </div>
+          </div>
+        </div>
+        <div>
         <div>
           <div className="flex items-center gap-2">
             <DollarSign className="w-6 h-6 text-emerald-600" />
