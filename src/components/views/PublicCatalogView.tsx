@@ -245,8 +245,49 @@ export const PublicCatalogView: React.FC<Props> = ({
         </div>
       </header>
 
-      {/* Hero Presentation Header */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#0b1022] via-[#090d19] to-[#070b14] py-12 sm:py-16 border-b border-slate-800/80">
+      {/* Hero Section - Apple-style Luxury */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#080d16] via-[#0a1122] to-[#040811] border-b border-slate-800/60">
+        {/* Subtle gold ambient glow spots */}
+        <div className="absolute top-[-40px] left-[-40px] w-[300px] h-[300px] rounded-full bg-gradient-to-br from-amber-500/10 to-transparent blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-60px] right-[-60px] w-[350px] h-[350px] rounded-full bg-gradient-to-tl from-cyan-400/8 to-transparent blur-[140px] pointer-events-none" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 relative z-10">
+          <div className="max-w-3xl space-y-5 text-right">
+            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-amber-500/8 border border-amber-500/20 text-amber-300 text-[11px] font-extrabold tracking-wide uppercase shadow-sm shadow-amber-500/10">
+              <Compass className="w-4 h-4 text-amber-400" />
+              <span>مخطط المشروعات المعمارية والوحدات السكنية</span>
+            </div>
+            <h2 className="text-4xl sm:text-6xl font-black text-white leading-[1.05] tracking-tight">
+              استكشف المخطط العام <br />
+              <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-cyan-300 bg-clip-text text-transparent">والوحدات المتاحة</span>
+            </h2>
+            <p className="text-[15px] sm:text-lg text-slate-300/80 leading-relaxed font-light max-w-xl">
+              اختر العمارة والدور لاستعراض الوحدات السكنية، مع كروكي معماري توضيحي وتوزيع المساحات لكل وحدة، واستعلام لحظي ومباشر عن حالة التوفر والتعاقد.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div className="glass-panel p-4 sm:p-5 rounded-3xl text-center shadow-2xl shadow-amber-900/5 border border-amber-500/10 hover:scale-[1.02] transition-transform duration-300">
+            <span className="text-[10px] text-slate-400 block mb-1 font-semibold tracking-wider">إجمالي الوحدات</span>
+            <span className="text-3xl font-black text-white font-mono">{totalUnits}</span>
+          </div>
+          <div className="glass-panel p-4 sm:p-5 rounded-3xl text-center shadow-2xl shadow-emerald-900/5 border border-emerald-500/10 hover:scale-[1.02] transition-transform duration-300">
+            <span className="text-[10px] text-emerald-400 block mb-1 font-semibold tracking-wider">متاحة للبيع</span>
+            <span className="text-3xl font-black text-emerald-400 font-mono">{availableUnits}</span>
+          </div>
+          <div className="glass-panel p-4 sm:p-5 rounded-3xl text-center shadow-2xl shadow-amber-900/5 border border-amber-500/10 hover:scale-[1.02] transition-transform duration-300">
+            <span className="text-[10px] text-amber-400 block mb-1 font-semibold tracking-wider">قيد الحجز</span>
+            <span className="text-3xl font-black text-amber-400 font-mono">{reservedUnits}</span>
+          </div>
+          <div className="glass-panel p-4 sm:p-5 rounded-3xl text-center shadow-2xl shadow-cyan-900/5 border border-cyan-500/10 hover:scale-[1.02] transition-transform duration-300">
+            <span className="text-[10px] text-cyan-400 block mb-1 font-semibold tracking-wider">العمارات</span>
+            <span className="text-3xl font-black text-cyan-400 font-mono">{buildings.length}</span>
+          </div>
+        </div>
+      </section>
         {/* Architectural subtle ambient background pattern */}
         <div
           className="absolute inset-0 pointer-events-none opacity-20"
