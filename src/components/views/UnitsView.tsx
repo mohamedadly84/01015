@@ -265,18 +265,22 @@ export const UnitsView: React.FC<Props> = ({
   return (
     <div className="space-y-6">
       {/* Header and Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-8 rounded-3xl glass-panel border border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
         <div>
-          <div className="flex items-center gap-2">
-            <Building className="w-6 h-6 text-blue-600" />
-            <h2 className="text-2xl font-bold text-slate-800">إدارة الوحدات السكنية والعقارات</h2>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl p-2.5 rounded-2xl bg-blue-500/20 border border-blue-500/30">🏢</span>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-indigo-200 to-cyan-300 bg-clip-text text-transparent">
+                إدارة الوحدات السكنية والعقارات
+              </h2>
+              <p className="text-slate-300 text-sm mt-1 font-medium">
+                عرض وتعديل الوحدات، المخططات الهندسية، الأسعار، وتوليد رموز QR Code
+              </p>
+            </div>
           </div>
-          <p className="text-slate-500 text-sm mt-0.5">
-            عرض وتعديل الوحدات، المخططات الهندسية، الأسعار، وتوليد رموز QR Code
-          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Visitor Public Catalog Link & Copy */}
           <button
             onClick={() => window.open('/?mode=visitor', '_blank')}
@@ -317,7 +321,7 @@ export const UnitsView: React.FC<Props> = ({
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="glass-panel p-5 rounded-3xl shadow-xl shadow-indigo-500/5 flex flex-col md:flex-row gap-4 items-center justify-between border border-indigo-500/20">
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
           <input
