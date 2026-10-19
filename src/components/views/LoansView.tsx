@@ -190,13 +190,17 @@ export const LoansView: React.FC<Props> = ({
       {/* Header and Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-8 rounded-3xl glass-panel border border-indigo-500/20 shadow-2xl shadow-indigo-500/10 mb-6">
         <div>
-          <div className="flex items-center gap-2">
-            <Landmark className="w-6 h-6 text-amber-600" />
-            <h2 className="text-2xl font-bold text-slate-800">إدارة القروض والتمويلات البنكية</h2>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl p-2.5 rounded-2xl bg-amber-500/20 border border-amber-500/30">🏦</span>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-amber-200 to-yellow-300 bg-clip-text text-transparent">
+                إدارة القروض والتمويلات البنكية
+              </h2>
+              <p className="text-slate-300 text-sm mt-1 font-medium">
+                تسجيل القروض للأفراد والبنوك، جدولة السداد، ومتابعة الالتزامات والمديونيات
+              </p>
+            </div>
           </div>
-          <p className="text-slate-500 text-sm mt-0.5">
-            تسجيل القروض للأفراد والبنوك، جدولة السداد، ومتابعة الالتزامات والمديونيات
-          </p>
         </div>
 
         <div className="flex items-center gap-2">

@@ -227,11 +227,14 @@ export default function App() {
   };
 
   // If accessed via QR Code scan (?unit=id), render the live public unit card directly without login screen!
+  // If accessed via QR Code scan (?unit=id), render the live public unit card directly without login screen!
   if (publicUnitId !== null) {
     return (
       <PublicUnitView
         unitId={publicUnitId}
         initialDb={db}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         onGoToApp={() => {
           // Clear query param and navigate to main app
           window.history.replaceState({}, '', window.location.pathname);
@@ -253,6 +256,8 @@ export default function App() {
     return (
       <PublicCatalogView
         initialDb={db}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         onGoToLogin={() => {
           window.history.replaceState({}, '', window.location.pathname);
           setIsVisitorMode(false);
@@ -268,9 +273,23 @@ export default function App() {
   // If user is not logged in, render the login page
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-800 space-y-6">
-          <div className="text-center space-y-2">
+      <div className={`min-h-screen flex items-center justify-center p-4 transition-colors ${
+        isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'
+      }`}>
+        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-200 dark:border-slate-800 space-y-6 relative">
+          {/* Top-right theme toggle on login screen */}
+          <div className="absolute top-4 left-4">
+            <button
+              type="button"
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-amber-400 transition cursor-pointer text-xs flex items-center gap-1 border border-slate-200 dark:border-slate-700"
+              title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الليلي'}
+            >
+              {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+            </button>
+          </div>
+
+          <div className="text-center space-y-2 pt-2">
             <div className="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-blue-500 rounded-2xl flex items-center justify-center text-white mx-auto shadow-lg shadow-indigo-500/30">
               <Building2 className="w-9 h-9" />
             </div>
@@ -372,9 +391,13 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100/70 text-slate-900 pb-12 font-['Cairo',sans-serif]">
+    <div className={`min-h-screen pb-12 font-['Cairo',sans-serif] transition-colors duration-200 ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#f8f6f2] text-slate-800'}`}>
       {/* Top Navbar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs print:hidden">
+      <header className={`sticky top-0 z-40 backdrop-blur-xl border-b transition-colors duration-200 print:hidden ${
+        isDarkMode 
+          ? 'glass-panel border-indigo-500/20 text-white shadow-2xl shadow-indigo-500/5' 
+          : 'bg-white/85 border-slate-200/80 text-slate-900 shadow-xs'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
           {/* Logo & Title */}
           <div className="flex items-center gap-3">
@@ -382,11 +405,11 @@ export default function App() {
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="font-extrabold text-slate-900 text-base sm:text-lg leading-tight">
+              <h1 className={`font-extrabold text-base sm:text-lg leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                 {db.settings.name || 'برنامج المحاسبة العقارية'}
               </h1>
               <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                <span className={`flex items-center gap-1 font-semibold ${isCloudConnected ? 'text-emerald-600' : 'text-amber-600'}`}>
+                <span className={`flex items-center gap-1 font-semibold ${isCloudConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
                   {isCloudConnected ? <Cloud className="w-3.5 h-3.5" /> : <CloudOff className="w-3.5 h-3.5" />}
                   <span>{syncNotice}</span>
                 </span>
@@ -394,10 +417,10 @@ export default function App() {
                 <button
                   onClick={handleManualSync}
                   disabled={isSyncing}
-                  className="hover:text-indigo-600 flex items-center gap-1 transition text-slate-500"
+                  className="hover:text-indigo-400 flex items-center gap-1 transition text-slate-400 cursor-pointer"
                   title="مزامنة فورية مع السحابة"
                 >
-                  <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin text-indigo-600' : ''}`} />
+                  <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin text-indigo-400' : ''}`} />
                   <span>تحديث</span>
                 </button>
               </div>
@@ -412,7 +435,11 @@ export default function App() {
                 window.history.replaceState({}, '', '?mode=visitor');
                 setIsVisitorMode(true);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition border border-indigo-200 cursor-pointer shadow-xs"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer shadow-xs ${
+                isDarkMode
+                  ? 'bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border-indigo-500/30'
+                  : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border-indigo-300'
+              }`}
               title="معاينة موقع ومعرض الزوار كما يراه العملاء"
             >
               <Globe className="w-3.5 h-3.5" />
@@ -423,7 +450,11 @@ export default function App() {
             {/* Theme Toggle Button */}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-400/10 hover:bg-amber-400/20 text-amber-600 rounded-xl text-xs font-bold transition border border-amber-400/30 cursor-pointer shadow-xs"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer shadow-xs ${
+                isDarkMode
+                  ? 'bg-amber-400/15 hover:bg-amber-400/25 text-amber-300 border-amber-400/30'
+                  : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
+              }`}
               title={isDarkMode ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الليلي'}
             >
               {isDarkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
@@ -431,19 +462,23 @@ export default function App() {
             </button>
 
             <div className="text-left hidden sm:block">
-              <span className="font-bold text-slate-800 text-sm block">
+              <span className={`font-bold text-sm block ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                 {currentUser.fullName || currentUser.username}
               </span>
-              <span className="text-[11px] font-semibold text-slate-500">
+              <span className={`text-[11px] font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                 {roleBadgeMap[currentUser.role] || currentUser.role}
               </span>
             </div>
 
-            <div className="h-8 w-px bg-slate-200 hidden sm:block" />
+            <div className={`h-8 w-px hidden sm:block ${isDarkMode ? 'bg-slate-700/60' : 'bg-slate-300'}`} />
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-700 rounded-xl text-xs font-bold transition border border-slate-200 cursor-pointer"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                isDarkMode 
+                  ? 'bg-slate-900/80 hover:bg-red-950/40 text-slate-300 hover:text-red-400 border-slate-700/60' 
+                  : 'bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 border-slate-300'
+              }`}
               title="تسجيل الخروج"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -453,7 +488,7 @@ export default function App() {
         </div>
 
         {/* Tab navigation bar */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 overflow-x-auto scrollbar-none border-t border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 overflow-x-auto scrollbar-none border-t border-white/5">
           <nav className="flex space-x-1 space-x-reverse py-1.5 min-w-max">
             {visibleTabs.map(tab => {
               const isActive = activeTab === tab.id;
@@ -461,10 +496,12 @@ export default function App() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md shadow-indigo-600/30'
+                      : isDarkMode
+                      ? 'text-slate-300 hover:text-white hover:bg-white/5'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                   }`}
                 >
                   {tab.label}

@@ -127,13 +127,17 @@ export const CustomersView: React.FC<Props> = ({
       {/* Header and Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-8 rounded-3xl glass-panel border border-indigo-500/20 shadow-2xl shadow-indigo-500/10 mb-6">
         <div>
-          <div className="flex items-center gap-2">
-            <Users className="w-6 h-6 text-indigo-600" />
-            <h2 className="text-2xl font-bold text-slate-800">إدارة العملاء والمشترين</h2>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl p-2.5 rounded-2xl bg-indigo-500/20 border border-indigo-500/30">👥</span>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-indigo-200 to-cyan-300 bg-clip-text text-transparent">
+                إدارة العملاء والمشترين
+              </h2>
+              <p className="text-slate-300 text-sm mt-1 font-medium">
+                سجل العملاء، أرقام الهواتف، الأرقام القومية، ومتابعة العقود المبرمة
+              </p>
+            </div>
           </div>
-          <p className="text-slate-500 text-sm mt-0.5">
-            سجل العملاء، أرقام الهواتف، الأرقام القومية، ومتابعة العقود المبرمة
-          </p>
         </div>
 
         <div className="flex items-center gap-2">

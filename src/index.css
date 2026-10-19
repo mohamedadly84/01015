@@ -48,31 +48,378 @@
   box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.15);
 }
 
-/* Light Mode Overrides for Apple-style Bright Theme */
+/* =========================================================================
+   DARK MODE CONTRAST & LEGIBILITY (Default & .dark-mode)
+   ========================================================================= */
+:root:not(.light-mode),
+.dark-mode {
+  color-scheme: dark;
+}
+
+:root:not(.light-mode) .bg-white:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure):not(.print-paper),
+.dark-mode .bg-white:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure):not(.print-paper) {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #f8fafc;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+:root:not(.light-mode) .bg-slate-50:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure),
+.dark-mode .bg-slate-50:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure) {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0;
+}
+
+:root:not(.light-mode) .bg-slate-100:not(.printable-document):not(#printable-contract):not(#printable-receipt),
+.dark-mode .bg-slate-100:not(.printable-document):not(#printable-contract):not(#printable-receipt) {
+  background: rgba(30, 41, 59, 0.75) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #e2e8f0;
+}
+
+:root:not(.light-mode) .border-slate-200,
+:root:not(.light-mode) .border-slate-100,
+.dark-mode .border-slate-200,
+.dark-mode .border-slate-100 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+:root:not(.light-mode) .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+:root:not(.light-mode) .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark-mode .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+.dark-mode .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Dark mode typography contrast */
+:root:not(.light-mode) .text-slate-900,
+:root:not(.light-mode) .text-slate-800,
+.dark-mode .text-slate-900,
+.dark-mode .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+:root:not(.light-mode) .text-slate-700,
+:root:not(.light-mode) .text-slate-600,
+.dark-mode .text-slate-700,
+.dark-mode .text-slate-600 {
+  color: #e2e8f0 !important;
+}
+
+:root:not(.light-mode) .text-slate-500,
+.dark-mode .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+:root:not(.light-mode) .text-slate-400,
+.dark-mode .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+:root:not(.light-mode) .text-slate-300,
+.dark-mode .text-slate-300 {
+  color: #cbd5e1 !important;
+}
+
+/* Dark mode inputs and selects */
+:root:not(.light-mode) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+:root:not(.light-mode) select,
+:root:not(.light-mode) textarea,
+.dark-mode input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.dark-mode select,
+.dark-mode textarea {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+:root:not(.light-mode) select option,
+.dark-mode select option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+:root:not(.light-mode) input::placeholder,
+:root:not(.light-mode) textarea::placeholder,
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+  color: #64748b !important;
+}
+
+:root:not(.light-mode) tr:hover,
+.dark-mode tr:hover {
+  background-color: rgba(30, 41, 59, 0.5) !important;
+}
+
+/* Amber buttons in dark mode have dark text for extreme legibility */
+.dark-mode .bg-amber-400,
+.dark-mode .bg-amber-500,
+:root:not(.light-mode) .bg-amber-400,
+:root:not(.light-mode) .bg-amber-500 {
+  color: #0f172a !important;
+}
+.dark-mode .bg-amber-400 *,
+.dark-mode .bg-amber-500 *,
+:root:not(.light-mode) .bg-amber-400 *,
+:root:not(.light-mode) .bg-amber-500 * {
+  color: #0f172a !important;
+}
+
+/* =========================================================================
+   LIGHT MODE CONTRAST & APPLE-STYLE LUXURY BRIGHT THEME (.light-mode)
+   ========================================================================= */
+.light-mode,
 .light-mode body {
-  background: #f8f6f2 !important;
-  color: #1a1a1a !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
   background-image: none !important;
+  color-scheme: light;
 }
 
 .light-mode .glass-panel {
-  background: rgba(255, 255, 255, 0.65) !important;
-  border-color: rgba(0, 0, 0, 0.06) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06) !important;
 }
 
 .light-mode .glass-card {
-  background: rgba(255, 255, 255, 0.5) !important;
-  border-color: rgba(0, 0, 0, 0.05) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05) !important;
 }
 
-.light-mode .bg-slate-950 {
-  background: #f0ede8 !important;
+.light-mode .glass-card:hover {
+  border-color: rgba(99, 102, 241, 0.4) !important;
+  box-shadow: 0 12px 30px -8px rgba(99, 102, 241, 0.12) !important;
 }
 
+/* Light mode dark elements adaptation */
+.light-mode .bg-slate-950:not(#master-plan-canvas):not(#master-plan-canvas *),
+.light-mode .bg-slate-900:not(#master-plan-canvas):not(#master-plan-canvas *),
+.light-mode .bg-\[\#070b14\]:not(#master-plan-canvas):not(#master-plan-canvas *),
+.light-mode .bg-\[\#090e1c\]:not(#master-plan-canvas):not(#master-plan-canvas *) {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.light-mode .bg-slate-900\/90,
+.light-mode .bg-slate-900\/80,
+.light-mode .bg-slate-900\/60,
+.light-mode .bg-slate-800,
+.light-mode .bg-slate-800\/80,
+.light-mode .bg-slate-800\/90 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #0f172a !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Light mode text contrast fixes: prevent faded light gray text on white cards */
+.light-mode .text-slate-400,
+.light-mode .text-slate-500 {
+  color: #475569 !important;
+}
+
+.light-mode .text-slate-300 {
+  color: #334155 !important;
+}
+
+.light-mode .text-slate-200 {
+  color: #1e293b !important;
+}
+
+.light-mode .text-slate-100 {
+  color: #0f172a !important;
+}
+
+/* Ensure headings with text-white outside of solid buttons become crisp dark slate */
+.light-mode h1.text-white,
+.light-mode h2.text-white,
+.light-mode h3.text-white,
+.light-mode h4.text-white,
+.light-mode p.text-white,
+.light-mode span.text-white:not(button *):not([class*="bg-indigo-600"] *):not([class*="bg-blue-600"] *):not([class*="bg-emerald-600"] *):not([class*="bg-red-600"] *):not([class*="bg-rose-600"] *) {
+  color: #0f172a !important;
+}
+
+/* Gradient heading texts: in light mode, switch from white gradients to high-contrast indigo/slate gradients */
+.light-mode h1[class*="bg-clip-text"],
+.light-mode h2[class*="bg-clip-text"],
+.light-mode h3[class*="bg-clip-text"],
+.light-mode span[class*="bg-clip-text"] {
+  background-image: linear-gradient(to right, #0f172a, #312e81, #1e3a8a) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+/* Light mode table headers and cells */
+.light-mode th {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light-mode td {
+  color: #1e293b !important;
+  border-color: #f1f5f9 !important;
+}
+
+.light-mode tr:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Light mode inputs, selects, textareas */
+.light-mode input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.light-mode select,
+.light-mode textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light-mode select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.light-mode input::placeholder,
+.light-mode textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Light mode status badges: high contrast colored text and soft colored backgrounds */
+.light-mode .bg-emerald-500\/10,
+.light-mode .bg-emerald-500\/15,
+.light-mode .bg-emerald-500\/20 {
+  background-color: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #a7f3d0 !important;
+}
+.light-mode .bg-emerald-500\/10 *,
+.light-mode .bg-emerald-500\/15 *,
+.light-mode .bg-emerald-500\/20 * {
+  color: #047857 !important;
+}
+
+.light-mode .bg-amber-500\/10,
+.light-mode .bg-amber-500\/15,
+.light-mode .bg-amber-500\/20 {
+  background-color: #fffbeb !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+}
+.light-mode .bg-amber-500\/10 *,
+.light-mode .bg-amber-500\/15 *,
+.light-mode .bg-amber-500\/20 * {
+  color: #b45309 !important;
+}
+
+.light-mode .bg-rose-500\/10,
+.light-mode .bg-rose-500\/15,
+.light-mode .bg-rose-500\/20,
+.light-mode .bg-red-500\/10,
+.light-mode .bg-red-500\/15,
+.light-mode .bg-red-500\/20 {
+  background-color: #fff1f2 !important;
+  color: #be123c !important;
+  border-color: #fecdd3 !important;
+}
+.light-mode .bg-rose-500\/10 *,
+.light-mode .bg-rose-500\/15 *,
+.light-mode .bg-rose-500\/20 *,
+.light-mode .bg-red-500\/10 *,
+.light-mode .bg-red-500\/15 *,
+.light-mode .bg-red-500\/20 * {
+  color: #be123c !important;
+}
+
+.light-mode .bg-indigo-500\/10,
+.light-mode .bg-indigo-500\/15,
+.light-mode .bg-indigo-500\/20 {
+  background-color: #eef2ff !important;
+  color: #4338ca !important;
+  border-color: #c7d2fe !important;
+}
+.light-mode .bg-indigo-500\/10 *,
+.light-mode .bg-indigo-500\/15 *,
+.light-mode .bg-indigo-500\/20 * {
+  color: #4338ca !important;
+}
+
+.light-mode .bg-blue-500\/10,
+.light-mode .bg-blue-500\/15,
+.light-mode .bg-blue-500\/20 {
+  background-color: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
+.light-mode .bg-cyan-500\/10,
+.light-mode .bg-cyan-500\/15,
+.light-mode .bg-cyan-500\/20 {
+  background-color: #ecfeff !important;
+  color: #0e7490 !important;
+  border-color: #a5f3fc !important;
+}
+
+/* Solid action buttons keep crisp white text in light mode */
+.light-mode .bg-indigo-600,
+.light-mode .bg-indigo-700,
+.light-mode .bg-blue-600,
+.light-mode .bg-blue-700,
+.light-mode .bg-emerald-600,
+.light-mode .bg-emerald-700,
+.light-mode .bg-red-600,
+.light-mode .bg-red-700,
+.light-mode .bg-rose-600,
+.light-mode .bg-rose-700,
+.light-mode button.bg-indigo-600,
+.light-mode button.bg-blue-600,
+.light-mode button.bg-emerald-600 {
+  color: #ffffff !important;
+}
+.light-mode .bg-indigo-600 *,
+.light-mode .bg-indigo-700 *,
+.light-mode .bg-blue-600 *,
+.light-mode .bg-blue-700 *,
+.light-mode .bg-emerald-600 *,
+.light-mode .bg-emerald-700 *,
+.light-mode .bg-red-600 *,
+.light-mode .bg-red-700 *,
+.light-mode .bg-rose-600 *,
+.light-mode .bg-rose-700 * {
+  color: #ffffff !important;
+}
+
+/* Amber buttons have dark slate text for maximum legibility */
+.light-mode .bg-amber-400,
+.light-mode .bg-amber-500 {
+  color: #0f172a !important;
+}
+.light-mode .bg-amber-400 *,
+.light-mode .bg-amber-500 * {
+  color: #0f172a !important;
+}
+
+/* Master plan blueprint canvas maintains high-contrast architectural colors */
+#master-plan-canvas {
+  background-color: #070b14 !important;
+  color: #f8fafc !important;
+}
+#master-plan-canvas * {
+  color-scheme: dark;
+}
+
+/* =========================================================================
+   PRINT STYLES FOR RECEIPTS, CONTRACTS, BROCHURES
+   ========================================================================= */
 @media print {
-  /* Set A4 page size and margins */
   @page {
     size: A4 portrait;
     margin: 10mm;
@@ -87,7 +434,6 @@
     print-color-adjust: exact !important;
   }
 
-  /* Hide the rest of the application completely */
   header,
   nav,
   main,
@@ -97,7 +443,6 @@
     visibility: hidden !important;
   }
 
-  /* Reset all modal fixed containers */
   .fixed.inset-0 {
     position: static !important;
     background: transparent !important;
@@ -124,7 +469,6 @@
     height: auto !important;
   }
 
-  /* Ensure the printable document prints cleanly at the top */
   #receipt-print-area,
   #contract-print-area,
   #summary-report-print-area,

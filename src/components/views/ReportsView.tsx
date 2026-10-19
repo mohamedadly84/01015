@@ -95,13 +95,17 @@ export const ReportsView: React.FC<Props> = ({ db, onOpenSummaryReport }) => {
       {/* Header and Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-8 rounded-3xl glass-panel border border-indigo-500/20 shadow-2xl shadow-indigo-500/10 mb-6">
         <div>
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-indigo-600" />
-            <h2 className="text-2xl font-bold text-slate-800">التقارير المالية وتحليل الربحية</h2>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl p-2.5 rounded-2xl bg-purple-500/20 border border-purple-500/30">📊</span>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-purple-200 to-pink-300 bg-clip-text text-transparent">
+                التقارير المالية وتحليل الربحية
+              </h2>
+              <p className="text-slate-300 text-sm mt-1 font-medium">
+                تحليل التدفق النقدي، المبيعات حسب المشروع، وربحية كل وحدة بناءً على تكاليف الإنشاء
+              </p>
+            </div>
           </div>
-          <p className="text-slate-500 text-sm mt-0.5">
-            تحليل التدفق النقدي، المبيعات حسب المشروع، وربحية كل وحدة بناءً على تكاليف الإنشاء
-          </p>
         </div>
 
         <div className="flex items-center gap-2">

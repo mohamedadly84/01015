@@ -8,12 +8,14 @@ import { QRCodeModal } from '../QRCodeModal';
 import {
   Building2, CheckCircle2, Clock, XCircle, Phone, MapPin,
   Sparkles, RefreshCw, Layers, ShieldCheck, ArrowRight,
-  Compass, FileText, QrCode, Grid, MessageSquare
+  Compass, FileText, QrCode, Grid, MessageSquare, Sun, Moon
 } from 'lucide-react';
 
 interface Props {
   unitId: number;
   initialDb?: AppDatabase;
+  isDarkMode?: boolean;
+  onToggleDarkMode?: () => void;
   onGoToApp?: () => void;
   onGoToCatalog?: () => void;
 }
@@ -21,6 +23,8 @@ interface Props {
 export const PublicUnitView: React.FC<Props> = ({
   unitId,
   initialDb,
+  isDarkMode: externalDarkMode,
+  onToggleDarkMode,
   onGoToApp,
   onGoToCatalog,
 }) => {
@@ -29,8 +33,33 @@ export const PublicUnitView: React.FC<Props> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showQrBrochureModal, setShowQrBrochureModal] = useState(false);
 
-  // Subscribe to live real-time Firestore updates so when unit status changes (e.g. booked or sold),
-  // any client or customer scanning the QR code sees the real-time status instantly!
+  // Internal theme fallback
+  const [internalDarkMode, setInternalDarkMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('hermes-theme');
+      return saved ? saved === 'dark' : true;
+    }
+    return true;
+  });
+
+  const isDarkMode = externalDarkMode !== undefined ? externalDarkMode : internalDarkMode;
+
+  const handleToggleTheme = () => {
+    if (onToggleDarkMode) {
+      onToggleDarkMode();
+    } else {
+      const nextMode = !internalDarkMode;
+      setInternalDarkMode(nextMode);
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.remove('light-mode');
+        document.documentElement.classList.add(nextMode ? 'dark-mode' : 'light-mode');
+        document.body.classList.toggle('light-mode', !nextMode);
+        localStorage.setItem('hermes-theme', nextMode ? 'dark' : 'light');
+      }
+    }
+  };
+
+  // Subscribe to live real-time Firestore updates
   useEffect(() => {
     const unsubscribe = subscribeToCloudDatabase(
       (cloudData) => {
@@ -58,22 +87,42 @@ export const PublicUnitView: React.FC<Props> = ({
     }, 400);
   };
 
+  const formatFloorName = (floorNum: number) => {
+    if (floorNum === 0) return 'الدور الأرضي';
+    if (floorNum === 1) return 'الدور الأول';
+    if (floorNum === 2) return 'الدور الثاني';
+    if (floorNum === 3) return 'الدور الثالث';
+    if (floorNum === 4) return 'الدور الرابع';
+    if (floorNum === 5) return 'الدور الخامس';
+    if (floorNum === 6) return 'الدور السادس';
+    if (floorNum === 7) return 'الدور السابع';
+    if (floorNum === 8) return 'الدور الثامن';
+    if (floorNum === 9) return 'الدور التاسع';
+    if (floorNum === 10) return 'الدور العاشر';
+    if (floorNum < 0) return `بدروم (${floorNum})`;
+    return `الدور ${floorNum}`;
+  };
+
   if (!unit) {
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
-        <div className="bg-slate-800/90 backdrop-blur-md rounded-3xl p-8 max-w-md w-full text-center border border-slate-700 space-y-4">
-          <div className="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto">
+      <div className={`min-h-screen flex items-center justify-center p-4 transition-colors ${
+        isDarkMode ? 'bg-[#070b14] text-slate-100' : 'bg-[#f8fafc] text-slate-900'
+      }`}>
+        <div className="glass-panel rounded-3xl p-8 max-w-md w-full text-center border shadow-2xl space-y-4">
+          <div className="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto border border-rose-500/30">
             <XCircle className="w-9 h-9" />
           </div>
-          <h2 className="text-xl font-bold text-white">الوحدة غير موجودة أو تم تعديلها</h2>
-          <p className="text-sm text-slate-400">
+          <h2 className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+            الوحدة غير موجودة أو تم تعديلها
+          </h2>
+          <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
             تأكد من مسح الرمز الصحيح أو تصفح باقي الوحدات المعروضة في المعرض.
           </p>
           <div className="flex flex-col gap-2 pt-2">
             {onGoToCatalog && (
               <button
                 onClick={onGoToCatalog}
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
               >
                 <Grid className="w-4 h-4" />
                 <span>تصفح معرض كافة الوحدات كزائر</span>
@@ -82,7 +131,11 @@ export const PublicUnitView: React.FC<Props> = ({
             {onGoToApp && (
               <button
                 onClick={onGoToApp}
-                className="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl text-xs font-semibold transition"
+                className={`w-full py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
+                  isDarkMode
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                }`}
               >
                 دخول نظام إدارة الشركة
               </button>
@@ -96,8 +149,8 @@ export const PublicUnitView: React.FC<Props> = ({
   // Status configuration
   const statusConfig = {
     متاحة: {
-      bg: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-      badgeBg: 'bg-emerald-500 text-white',
+      bg: isDarkMode ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-800',
+      badgeBg: 'bg-emerald-600 text-white',
       glow: 'shadow-emerald-500/20',
       icon: CheckCircle2,
       title: 'الوحدة متاحة للتعاقد والبيع الفوري',
@@ -105,8 +158,8 @@ export const PublicUnitView: React.FC<Props> = ({
       actionText: 'احجز أو استفسر عن الوحدة الآن'
     },
     محجوزة: {
-      bg: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-      badgeBg: 'bg-amber-500 text-white',
+      bg: isDarkMode ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-800',
+      badgeBg: 'bg-amber-500 text-slate-950 font-black',
       glow: 'shadow-amber-500/20',
       icon: Clock,
       title: 'الوحدة محجوزة حالياً',
@@ -114,7 +167,7 @@ export const PublicUnitView: React.FC<Props> = ({
       actionText: 'التواصل للاستفسار عن إمكانية الإلغاء أو البدائل'
     },
     مباعة: {
-      bg: 'bg-rose-500/10 border-rose-500/30 text-rose-400',
+      bg: isDarkMode ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-800',
       badgeBg: 'bg-rose-600 text-white',
       glow: 'shadow-rose-500/20',
       icon: ShieldCheck,
@@ -123,7 +176,7 @@ export const PublicUnitView: React.FC<Props> = ({
       actionText: 'استكشاف الوحدات المتاحة الأخرى في المشروع'
     }
   }[unit.status] || {
-    bg: 'bg-slate-500/10 border-slate-500/30 text-slate-300',
+    bg: isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700',
     badgeBg: 'bg-slate-600 text-white',
     glow: 'shadow-slate-500/20',
     icon: CheckCircle2,
@@ -136,31 +189,55 @@ export const PublicUnitView: React.FC<Props> = ({
   const rooms = unit.roomsCount || (unit.area >= 160 ? 4 : unit.area >= 120 ? 3 : 2);
   const baths = unit.bathroomsCount || (unit.area >= 140 ? 2 : 1);
 
+  // Construct WhatsApp inquiry link
+  const phone = company.phone ? company.phone.replace(/[^0-9]/g, '') : '';
+  const text = encodeURIComponent(
+    `مرحباً، قمت بمسح كود QR وأود الاستفسار عن الوحدة رقم (${unit.unitNumber}) في مشروع (${unit.building}) - ${formatFloorName(unit.floor)}، المساحة ${unit.area} م².`
+  );
+  const whatsappUrl = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex flex-col justify-between py-6 px-4 sm:px-6">
-      <div className="max-w-lg w-full mx-auto space-y-5">
+    <div className={`min-h-screen flex flex-col justify-between py-6 px-4 sm:px-6 transition-colors duration-300 ${
+      isDarkMode ? 'bg-[#070b14] text-slate-100' : 'bg-[#f8fafc] text-slate-900'
+    }`}>
+      <div className="max-w-xl w-full mx-auto space-y-5">
         {/* Company Header */}
-        <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 bg-indigo-600/30 border border-indigo-500/40 rounded-xl flex items-center justify-center text-indigo-400">
+        <div className={`flex items-center justify-between pb-3 border-b ${
+          isDarkMode ? 'border-slate-800' : 'border-slate-200'
+        }`}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center text-slate-950 font-black shadow-md">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-white tracking-wide">
+              <h1 className={`text-base font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                 {company.name?.trim() || 'المعرض العقاري للوحدات'}
               </h1>
-              <span className="text-[11px] text-slate-400 flex items-center gap-1">
+              <span className={`text-[11px] flex items-center gap-1.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                 <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 بيانات الوحدة المحدثة لحظياً
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
+            {/* Theme Toggle */}
+            <button
+              onClick={handleToggleTheme}
+              className={`p-2 rounded-xl border transition cursor-pointer ${
+                isDarkMode
+                  ? 'bg-amber-400/15 hover:bg-amber-400/25 text-amber-400 border-amber-400/30'
+                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
+              }`}
+              title={isDarkMode ? 'الوضع الفاتح' : 'الوضع الليلي'}
+            >
+              {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-amber-600" />}
+            </button>
+
             {onGoToCatalog && (
               <button
                 onClick={onGoToCatalog}
-                className="p-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-xl transition border border-indigo-500/30 flex items-center gap-1 text-xs font-semibold"
+                className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 rounded-xl transition border border-indigo-500/30 flex items-center gap-1.5 text-xs font-bold cursor-pointer"
                 title="معرض كافة الوحدات"
               >
                 <Grid className="w-3.5 h-3.5" />
@@ -170,175 +247,185 @@ export const PublicUnitView: React.FC<Props> = ({
 
             <button
               onClick={handleManualRefresh}
-              title="تحديث البيانات"
-              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700 flex items-center gap-1 text-xs"
+              title="تحديث البيانات لحظياً"
+              className={`p-2 rounded-xl transition border cursor-pointer ${
+                isDarkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 shadow-xs'
+              }`}
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-indigo-400' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-amber-500' : ''}`} />
             </button>
           </div>
         </div>
 
         {/* Live Status Hero Card */}
-        <div className={`p-5 rounded-3xl border backdrop-blur-md shadow-xl ${statusConfig.bg} ${statusConfig.glow}`}>
+        <div className={`p-5 rounded-3xl border shadow-xl ${statusConfig.bg} ${statusConfig.glow}`}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <StatusIcon className="w-6 h-6 shrink-0" />
-              <span className="text-xs font-semibold tracking-wider uppercase opacity-90">
+              <span className="text-xs font-bold tracking-wider uppercase">
                 الحالة المحدثة الآن
               </span>
             </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-black shadow-sm ${statusConfig.badgeBg}`}>
+            <span className={`px-3 py-1 rounded-full text-xs font-black shadow-xs ${statusConfig.badgeBg}`}>
               {unit.status}
             </span>
           </div>
 
-          <h2 className="text-xl font-black text-white mb-1.5">
+          <h2 className="text-xl font-black mb-1.5">
             {statusConfig.title}
           </h2>
-          <p className="text-xs text-slate-300 leading-relaxed opacity-90">
+          <p className="text-xs leading-relaxed opacity-95">
             {statusConfig.desc}
           </p>
 
-          <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400">
+          <div className="mt-3 pt-3 border-t border-black/10 flex items-center justify-between text-[11px] opacity-80">
             <span>آخر فحص وتحديث للحالة:</span>
-            <span className="font-mono text-slate-200">{lastRefreshed}</span>
+            <span className="font-mono font-bold">{lastRefreshed}</span>
           </div>
         </div>
 
-        {/* Architectural Floor Plan Drawing (الرسم التوضيحي للوحدة) */}
-        <div className="bg-slate-800/80 backdrop-blur-md rounded-3xl p-4 border border-slate-700/80 shadow-xl space-y-2">
+        {/* Architectural Floor Plan Drawing */}
+        <div className="glass-panel rounded-3xl p-4 border shadow-xl space-y-3">
           <div className="flex items-center justify-between text-xs px-1">
-            <span className="font-bold flex items-center gap-1.5 text-indigo-300">
-              <Compass className="w-4 h-4 text-indigo-400" />
-              <span>الرسم التوضيحي والمخطط الهندسي (Floor Plan)</span>
+            <span className="font-bold flex items-center gap-1.5 text-amber-500">
+              <Compass className="w-4 h-4" />
+              <span>المخطط الهندسي المعماري للوحدة</span>
             </span>
-            <span className="text-[11px] text-slate-400 font-mono">
+            <span className="text-[11px] font-mono font-bold">
               {unit.area} م²
             </span>
           </div>
 
-          {/* Render Vector Floor Plan with interactive controls */}
           <UnitFloorPlan
             unit={unit}
-            heightClass="h-56 sm:h-64"
+            heightClass="h-60 sm:h-72"
             showControls={true}
             interactive={true}
           />
         </div>
 
         {/* Unit Details Card */}
-        <div className="bg-slate-800/80 backdrop-blur-md rounded-3xl p-5 border border-slate-700/80 shadow-xl space-y-4">
-          <div className="flex items-baseline justify-between border-b border-slate-700/60 pb-3">
+        <div className="glass-panel rounded-3xl p-5 border shadow-xl space-y-4">
+          <div className="flex items-baseline justify-between border-b pb-3 border-slate-200/20">
             <div>
-              <span className="text-[11px] text-slate-400 block">رقم الوحدة</span>
-              <span className="text-3xl font-black text-white font-mono">{unit.unitNumber}</span>
+              <span className={`text-[11px] block ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>رقم الوحدة</span>
+              <span className={`text-3xl font-black font-mono ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                {unit.unitNumber}
+              </span>
             </div>
             <div className="text-left">
-              <span className="text-[11px] text-slate-400 block">العمارة / المشروع</span>
-              <span className="text-lg font-bold text-indigo-300">{unit.building}</span>
+              <span className={`text-[11px] block ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>العمارة / المشروع</span>
+              <span className="text-lg font-black text-amber-500">{unit.building}</span>
             </div>
           </div>
 
           {/* Specifications Grid */}
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="bg-slate-900/60 p-3 rounded-2xl border border-slate-700/50">
-              <span className="text-slate-400 text-xs block mb-1">المساحة الإجمالية</span>
-              <span className="text-xl font-bold text-white font-mono">{unit.area}</span>
-              <span className="text-xs text-slate-400 mr-1">م²</span>
+          <div className="grid grid-cols-2 gap-2.5 text-xs">
+            <div className={`p-3 rounded-2xl border ${
+              isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <span className={`text-[10px] block mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>المساحة الإجمالية</span>
+              <span className={`text-xl font-black font-mono ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                {unit.area}
+              </span>
+              <span className={`text-xs mr-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>م²</span>
             </div>
 
-            <div className="bg-slate-900/60 p-3 rounded-2xl border border-slate-700/50">
-              <span className="text-slate-400 text-xs block mb-1">الدور والتقسيم</span>
-              <span className="text-sm font-bold text-white block">الدور {unit.floor}</span>
-              <span className="text-[11px] text-slate-400">{rooms} غرف • {baths} حمام</span>
+            <div className={`p-3 rounded-2xl border ${
+              isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <span className={`text-[10px] block mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>الدور والتقسيم</span>
+              <span className={`text-sm font-bold block ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                {formatFloorName(unit.floor)}
+              </span>
+              <span className={`text-[11px] ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                {rooms} غرف • {baths} حمام
+              </span>
             </div>
 
-            <div className="col-span-2 bg-gradient-to-r from-indigo-950/70 to-slate-900/80 p-3.5 rounded-2xl border border-indigo-500/20 flex items-center justify-between">
+            <div className="col-span-2 p-3.5 rounded-2xl border flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-slate-900/20 to-indigo-500/10 border-amber-500/20">
               <div>
-                <span className="text-indigo-300/80 text-xs block mb-0.5">السعر المعلن</span>
-                <span className="text-2xl font-black text-emerald-400 font-mono">
+                <span className={`text-xs block mb-0.5 font-bold ${isDarkMode ? 'text-amber-400' : 'text-amber-700'}`}>
+                  السعر المعلن
+                </span>
+                <span className="text-2xl font-black font-mono text-emerald-500">
                   {formatCurrency(unit.price)}
                 </span>
               </div>
               <div className="text-left">
-                <span className="text-slate-400 text-[11px] block">سعر المتر تقريباً</span>
-                <span className="text-xs font-semibold text-slate-300 font-mono">
-                  {unit.area > 0 ? formatCurrency(Math.round(unit.price / unit.area)) : '-'} / م²
+                <span className={`text-[10px] block ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>سعر المتر</span>
+                <span className={`text-xs font-bold font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                  {formatCurrency(Math.round(unit.price / unit.area))}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Brochure & PDF / Contact Action Area */}
-        <div className="space-y-2.5">
-          {/* Download PDF Flyer / Brochure Button */}
-          <button
-            onClick={() => setShowQrBrochureModal(true)}
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition shadow-lg shadow-indigo-600/30 text-sm"
+        {/* Contact and Booking Actions */}
+        <div className="space-y-3 pt-2">
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-sm transition flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-600/20 cursor-pointer"
           >
-            <FileText className="w-4 h-4" />
-            <span>تحميل البروشور والمخطط التوضيحي PDF</span>
-          </button>
+            <MessageSquare className="w-5 h-5" />
+            <span>حجز أو استفسار مباشر عبر واتساب</span>
+          </a>
 
-          {/* Direct WhatsApp & Call Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {company.phone && (
-              <a
-                href={`tel:${company.phone}`}
-                className="flex items-center justify-center gap-2 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl transition shadow-lg shadow-emerald-600/30 text-xs"
-              >
-                <Phone className="w-3.5 h-3.5" />
-                <span>اتصال بالمبيعات ({company.phone})</span>
-              </a>
-            )}
+          {company.phone && (
+            <a
+              href={`tel:${company.phone}`}
+              className={`w-full py-3.5 px-4 rounded-2xl text-xs sm:text-sm font-bold border transition flex items-center justify-center gap-2 cursor-pointer ${
+                isDarkMode
+                  ? 'bg-slate-900 hover:bg-slate-800 text-white border-slate-700'
+                  : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300 shadow-xs'
+              }`}
+            >
+              <Phone className="w-4 h-4 text-amber-500" />
+              <span>اتصال هاتفي مباشر بإدارة المبيعات ({company.phone})</span>
+            </a>
+          )}
 
-            {company.phone && (
-              <a
-                href={`https://wa.me/${company.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`مرحباً، أود الاستفسار عن الوحدة رقم ${unit.unitNumber} في مشروع ${unit.building}`)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-center gap-2 py-3 px-4 bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold rounded-2xl transition text-xs"
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={() => setShowQrBrochureModal(true)}
+              className={`flex-1 py-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                isDarkMode
+                  ? 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+              }`}
+            >
+              <QrCode className="w-4 h-4 text-indigo-500" />
+              <span>كود QR وبروشور الوحدة</span>
+            </button>
+
+            {onGoToApp && (
+              <button
+                onClick={onGoToApp}
+                className={`py-2.5 px-3 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                  isDarkMode
+                    ? 'bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border-slate-700'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border-slate-300'
+                }`}
               >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>محادثة واتساب</span>
-              </a>
+                دخول الإدارة
+              </button>
             )}
           </div>
-
-          {/* Browse all units in catalog button */}
-          {onGoToCatalog && (
-            <button
-              onClick={onGoToCatalog}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl transition border border-slate-700 text-xs"
-            >
-              <Grid className="w-4 h-4 text-indigo-400" />
-              <span>استعراض باقي الوحدات المتاحة في المعرض 🏢</span>
-            </button>
-          )}
-
-          {company.address && (
-            <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 pt-1">
-              <MapPin className="w-3.5 h-3.5 text-indigo-400" />
-              <span>{company.address}</span>
-            </div>
-          )}
         </div>
-
-        {/* System entry link (for staff or owner) */}
-        {onGoToApp && (
-          <div className="text-center pt-2">
-            <button
-              onClick={onGoToApp}
-              className="text-xs text-slate-500 hover:text-indigo-300 underline underline-offset-4 transition"
-            >
-              دخول نظام إدارة العقارات للشركة
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* QR & PDF Brochure Modal */}
+      {/* Footer */}
+      <div className={`mt-8 text-center text-xs space-y-1 ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+        <p>{company.name || 'المعرض العقاري للوحدات'}</p>
+        <p className="text-[10px]">
+          تم إنشاء هذا الرابط للعرض السريع عبر مسح رمز QR
+        </p>
+      </div>
+
+      {/* QR Code Brochure Modal */}
       {showQrBrochureModal && (
         <QRCodeModal
           unit={unit}
@@ -348,11 +435,6 @@ export const PublicUnitView: React.FC<Props> = ({
           onClose={() => setShowQrBrochureModal(false)}
         />
       )}
-
-      {/* Footer */}
-      <footer className="text-center text-[11px] text-slate-500 pt-6">
-        نظام الاستعلام العقاري المباشر • رسم توضيحي وتحديث تلقائي لحظي عبر QR
-      </footer>
     </div>
   );
 };

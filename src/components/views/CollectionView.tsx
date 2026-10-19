@@ -144,20 +144,10 @@ export const CollectionView: React.FC<Props> = ({
             </div>
           </div>
         </div>
-        <div>
-        <div>
-          <div className="flex items-center gap-2">
-            <DollarSign className="w-6 h-6 text-emerald-600" />
-            <h2 className="text-2xl font-bold text-slate-800">تحصيل الأقساط وإصدار الإيصالات</h2>
-          </div>
-          <p className="text-slate-500 text-sm mt-0.5">
-            متابعة استحقاق أقساط العملاء، تسجيل التحصيل، وطباعة إيصالات الاستلام المعتمدة
-          </p>
-        </div>
 
         <button
           onClick={handleExportCSV}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition border border-slate-200"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-sm font-semibold transition border border-slate-700"
         >
           <Download className="w-4 h-4" />
           <span>تصدير Excel</span>

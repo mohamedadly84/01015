@@ -173,13 +173,17 @@ export const ExpensesView: React.FC<Props> = ({
       {/* Header and Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-8 rounded-3xl glass-panel border border-indigo-500/20 shadow-2xl shadow-indigo-500/10 mb-6">
         <div>
-          <div className="flex items-center gap-2">
-            <Receipt className="w-6 h-6 text-red-600" />
-            <h2 className="text-2xl font-bold text-slate-800">مصروفات الإنشاء والتطوير</h2>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl p-2.5 rounded-2xl bg-rose-500/20 border border-rose-500/30">🧾</span>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-rose-200 to-amber-300 bg-clip-text text-transparent">
+                مصروفات الإنشاء والتطوير
+              </h2>
+              <p className="text-slate-300 text-sm mt-1 font-medium">
+                تسجيل فواتير ومصروفات المواد والمقاولين والتشطيبات وتوزيعها على المشاريع
+              </p>
+            </div>
           </div>
-          <p className="text-slate-500 text-sm mt-0.5">
-            تسجيل فواتير ومصروفات المواد والمقاولين والتشطيبات وتوزيعها على المشاريع
-          </p>
         </div>
 
         <div className="flex items-center gap-2">

@@ -78,17 +78,17 @@ export const MasterPlanView: React.FC<Props> = ({
   }
 
   return (
-    <div className={`bg-slate-900/90 rounded-3xl border border-slate-800 shadow-2xl overflow-hidden backdrop-blur-xl ${className}`}>
+    <div className={`glass-panel rounded-3xl border shadow-2xl overflow-hidden backdrop-blur-xl ${className}`}>
       {/* Top Header of Master Plan */}
       <div className="p-4 sm:p-6 border-b border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm shadow-amber-400/50 animate-pulse"></span>
-            <span className="text-xs font-bold text-amber-400 tracking-wide">
+            <span className="text-xs font-bold text-amber-500 tracking-wide">
               المخطط العام والتوزيع المعماري للموقع (MASTER SITE PLAN)
             </span>
           </div>
-          <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+          <h3 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
             <span>مخطط العمارات والموقع العام</span>
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
               {buildings.length} {buildings.length === 1 ? 'عمارة' : 'عمارات'}
@@ -102,13 +102,13 @@ export const MasterPlanView: React.FC<Props> = ({
         {/* View Switcher Tabs & Zoom Controls */}
         <div className="flex items-center flex-wrap gap-2">
           {masterPlanImage && (
-            <div className="inline-flex p-1 bg-slate-950 rounded-2xl border border-slate-800">
+            <div className="inline-flex p-1 bg-slate-900/80 rounded-2xl border border-slate-800">
               <button
                 type="button"
                 onClick={() => setActiveTab('interactive')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                   activeTab === 'interactive'
-                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    ? 'bg-amber-500 text-slate-950 shadow-md font-black'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -131,7 +131,7 @@ export const MasterPlanView: React.FC<Props> = ({
           )}
 
           {/* Zoom & Fullscreen buttons */}
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-2xl border border-slate-800">
+          <div className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-2xl border border-slate-800">
             <button
               type="button"
               onClick={handleZoomIn}
@@ -169,7 +169,7 @@ export const MasterPlanView: React.FC<Props> = ({
       </div>
 
       {/* Main Master Plan Canvas */}
-      <div className="relative bg-[#070b14] overflow-hidden min-h-[380px] sm:min-h-[440px] flex items-center justify-center p-4">
+      <div id="master-plan-canvas" className="relative bg-[#070b14] overflow-hidden min-h-[380px] sm:min-h-[440px] flex items-center justify-center p-4">
         {/* Subtle Architectural Blueprint Grid Background */}
         <div
           className="absolute inset-0 pointer-events-none opacity-20"
