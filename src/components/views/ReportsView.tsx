@@ -98,10 +98,10 @@ export const ReportsView: React.FC<Props> = ({ db, onOpenSummaryReport }) => {
           <div className="flex items-center gap-3">
             <span className="text-3xl p-2.5 rounded-2xl bg-purple-500/20 border border-purple-500/30">📊</span>
             <div>
-              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-purple-200 to-pink-300 bg-clip-text text-transparent">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:bg-gradient-to-r dark:from-white dark:via-purple-200 dark:to-pink-300 dark:bg-clip-text dark:text-transparent">
                 التقارير المالية وتحليل الربحية
               </h2>
-              <p className="text-slate-300 text-sm mt-1 font-medium">
+              <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 font-medium">
                 تحليل التدفق النقدي، المبيعات حسب المشروع، وربحية كل وحدة بناءً على تكاليف الإنشاء
               </p>
             </div>
@@ -213,38 +213,44 @@ export const ReportsView: React.FC<Props> = ({ db, onOpenSummaryReport }) => {
           </div>
         </div>
 
-        {/* Sales by building */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <h3 className="font-bold text-slate-900 text-base mb-4 flex items-center gap-2">
-            <Building className="w-5 h-5 text-indigo-600" />
+        {/* Sales by building - Apple Glassmorphism Card */}
+        <div className="glass-panel p-6 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-2xl">
+          <h3 className="font-black text-slate-900 dark:text-white text-base mb-4 flex items-center gap-2">
+            <Building className="w-5 h-5 text-indigo-500" />
             <span>🏢 المبيعات حسب المشروع / العمارة</span>
           </h3>
 
           <div className="space-y-3">
-            {salesByBuilding.map(sb => (
-              <div key={sb.building} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-                <div>
-                  <span className="font-bold text-slate-800 block text-sm">{sb.building}</span>
-                  <span className="text-xs text-slate-400">{sb.count} عقود بيع</span>
-                </div>
-                <div className="text-left">
-                  <span className="font-black text-slate-900 block text-sm">{formatCurrency(sb.sum)}</span>
-                  <span className="text-[10px] text-slate-400">
-                    {totalSales > 0 ? `${Math.round((sb.sum / totalSales) * 100)}% من المبيعات` : '0%'}
-                  </span>
-                </div>
+            {salesByBuilding.length === 0 || buildings.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-400">
+                لا توجد مشاريع أو مبيعات مسجلة بعد
               </div>
-            ))}
+            ) : (
+              salesByBuilding.map(sb => (
+                <div key={sb.building} className="p-3.5 bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/60 dark:border-white/5 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-800 dark:text-slate-100 block text-sm">{sb.building}</span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">{sb.count} عقود بيع</span>
+                  </div>
+                  <div className="text-left">
+                    <span className="font-black text-slate-900 dark:text-white block text-sm">{formatCurrency(sb.sum)}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                      {totalSales > 0 ? `${Math.round((sb.sum / totalSales) * 100)}% من المبيعات` : '0%'}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
 
-      {/* Unit Profitability Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+      {/* Unit Profitability Table - Apple Glassmorphism Design */}
+      <div className="glass-panel rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-2xl overflow-hidden">
+        <div className="p-6 border-b border-slate-200/80 dark:border-white/10 bg-slate-100/70 dark:bg-slate-900/80 flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-slate-900 text-base">🎯 تحليل وتوزيع تكلفة المشروع على الوحدات بالمساحة (م²)</h3>
-            <span className="text-xs text-slate-500">
+            <h3 className="font-black text-slate-900 dark:text-white text-base">🎯 تحليل وتوزيع تكلفة المشروع على الوحدات بالمساحة (م²)</h3>
+            <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 block">
               يتم حساب إجمالي مساحات وحدات العمارة، وتوزيع المصروفات بدقة بناءً على مساحة كل وحدة (م²) لتحديد تكلفتها الفعلية وهامش الربح
             </span>
           </div>
@@ -252,59 +258,70 @@ export const ReportsView: React.FC<Props> = ({ db, onOpenSummaryReport }) => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
-            <thead className="bg-slate-100 text-slate-700 border-b border-slate-200 font-bold text-xs">
+            <thead className="bg-slate-100/50 dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 border-b border-slate-200/80 dark:border-white/10 font-black text-xs">
               <tr>
-                <th className="py-3 px-4">الوحدة</th>
-                <th className="py-3 px-4">العمارة</th>
-                <th className="py-3 px-4">المساحة</th>
-                <th className="py-3 px-4">تكلفة المتر (م²)</th>
-                <th className="py-3 px-4">السعر المطلوب</th>
-                <th className="py-3 px-4">سعر البيع الفعلي</th>
-                <th className="py-3 px-4">التكلفة المحسوبة</th>
-                <th className="py-3 px-4">صافي الربح التقديري</th>
-                <th className="py-3 px-4 text-center">هامش الربح</th>
-                <th className="py-3 px-4">الحالة</th>
+                <th className="py-4 px-4 font-black">الوحدة</th>
+                <th className="py-4 px-4 font-bold">العمارة</th>
+                <th className="py-4 px-4 font-bold">المساحة</th>
+                <th className="py-4 px-4 font-bold">تكلفة المتر (م²)</th>
+                <th className="py-4 px-4 font-bold">السعر المطلوب</th>
+                <th className="py-4 px-4 font-bold">سعر البيع الفعلي</th>
+                <th className="py-4 px-4 font-bold">التكلفة المحسوبة</th>
+                <th className="py-4 px-4 font-bold">صافي الربح التقديري</th>
+                <th className="py-4 px-4 text-center font-bold">هامش الربح</th>
+                <th className="py-4 px-4 font-bold">الحالة</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {unitProfitability.map((p, idx) => (
-                <tr key={idx} className="hover:bg-slate-50 transition">
-                  <td className="py-3.5 px-4 font-black text-slate-900">{p.unitNumber}</td>
-                  <td className="py-3.5 px-4 font-medium text-slate-700">{p.building}</td>
-                  <td className="py-3.5 px-4 text-slate-600 font-semibold">{p.area} م²</td>
-                  <td className="py-3.5 px-4 text-slate-500 text-xs">
-                    {formatCurrency(Math.round(p.costPerM2))} / م²
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-700">{formatCurrency(p.listPrice)}</td>
-                  <td className="py-3.5 px-4 font-semibold text-slate-900">
-                    {p.salePrice > 0 ? formatCurrency(p.salePrice) : '---'}
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-red-600 bg-red-50/20">
-                    {formatCurrency(Math.round(p.unitCost))}
-                  </td>
-                  <td className="py-3.5 px-4 font-black">
-                    <span className={p.profit >= 0 ? 'text-emerald-700' : 'text-red-600'}>
-                      {formatCurrency(Math.round(p.profit))}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-center font-bold">
-                    <span className={`px-2 py-0.5 rounded text-xs ${
-                      p.margin >= 20 ? 'bg-emerald-100 text-emerald-800' : p.margin >= 0 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {p.margin}%
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${
-                      p.status === 'مباعة' ? 'bg-emerald-50 text-emerald-700' :
-                      p.status === 'محجوزة' ? 'bg-amber-50 text-amber-700' :
-                      'bg-blue-50 text-blue-700'
-                    }`}>
-                      {p.status}
-                    </span>
+            <tbody className="divide-y divide-slate-200/40 dark:divide-white/5">
+              {unitProfitability.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="py-14 text-center text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <BarChart3 className="w-8 h-8 opacity-40" />
+                      <p className="font-semibold text-sm">لا توجد وحدات مسجلة للتحليل</p>
+                    </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                unitProfitability.map((p, idx) => (
+                  <tr key={idx} className="hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors duration-150">
+                    <td className="py-4 px-4 font-black text-slate-900 dark:text-white">{p.unitNumber}</td>
+                    <td className="py-4 px-4 font-semibold text-slate-700 dark:text-slate-200">{p.building}</td>
+                    <td className="py-4 px-4 text-blue-700 dark:text-blue-400 font-bold">{p.area} م²</td>
+                    <td className="py-4 px-4 text-slate-500 dark:text-slate-400 text-xs">
+                      {formatCurrency(Math.round(p.costPerM2))} / م²
+                    </td>
+                    <td className="py-4 px-4 text-slate-700 dark:text-slate-300 font-semibold">{formatCurrency(p.listPrice)}</td>
+                    <td className="py-4 px-4 font-black text-slate-900 dark:text-white">
+                      {p.salePrice > 0 ? formatCurrency(p.salePrice) : '---'}
+                    </td>
+                    <td className="py-4 px-4 font-bold text-red-600 dark:text-red-400">
+                      {formatCurrency(Math.round(p.unitCost))}
+                    </td>
+                    <td className="py-4 px-4 font-black">
+                      <span className={p.profit >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
+                        {formatCurrency(Math.round(p.profit))}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-center font-bold">
+                      <span className={`px-2.5 py-1 rounded-xl text-xs font-black ${
+                        p.margin >= 20 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700/40' : p.margin >= 0 ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700/40' : 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700/40'
+                      }`}>
+                        {p.margin}%
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <span className={`text-xs font-bold py-1 px-2.5 rounded-xl border ${
+                        p.status === 'مباعة' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700/40' :
+                        p.status === 'محجوزة' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700/40' :
+                        'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/40'
+                      }`}>
+                        {p.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

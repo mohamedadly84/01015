@@ -3,6 +3,7 @@ import { Contract, Customer, Installment, Unit, CompanySettings } from '../types
 import { formatCurrency, formatNumber, numberToArabicWords } from '../utils/helpers';
 import { exportElementToPdf, exportElementToImage, printDirectly } from '../utils/pdfExport';
 import { X, Printer, CheckCircle, Download, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface Props {
   installment: Installment | null;
@@ -83,7 +84,13 @@ export const ReceiptModal: React.FC<Props> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150 my-6">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 12 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+        className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 my-6"
+      >
         {/* Modal Top Actions */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-slate-200 bg-slate-50 print:hidden">
           <div className="flex items-center gap-2">
@@ -232,7 +239,7 @@ export const ReceiptModal: React.FC<Props> = ({
             * هذا الإيصال معتمد ومولد آلياً من نظام إدارة المحاسبة العقارية.
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

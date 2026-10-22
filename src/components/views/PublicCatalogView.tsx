@@ -10,10 +10,11 @@ import {
   Building2, Search, Filter, Phone, MapPin, CheckCircle2,
   Clock, ShieldCheck, Download, ExternalLink, QrCode,
   Sparkles, RefreshCw, Eye, ArrowUpDown, ChevronDown,
-  Layers, Home, ArrowLeft, MessageSquare, FileText, Check,
+  Layers, Home, ArrowLeft, ArrowRight, MessageSquare, FileText, Check,
   Compass, LayoutGrid, Calendar, SlidersHorizontal, Share2,
   Maximize2, X, Sun, Moon, Sparkle
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Props {
   initialDb?: AppDatabase;
@@ -21,6 +22,7 @@ interface Props {
   onToggleDarkMode?: () => void;
   onGoToLogin?: () => void;
   onSelectUnit?: (unitId: number) => void;
+  onBack?: () => void;
 }
 
 export const PublicCatalogView: React.FC<Props> = ({
@@ -29,6 +31,7 @@ export const PublicCatalogView: React.FC<Props> = ({
   onToggleDarkMode,
   onGoToLogin,
   onSelectUnit,
+  onBack,
 }) => {
   const [db, setDb] = useState<AppDatabase>(initialDb || getLocalDatabase());
   const [lastRefreshed, setLastRefreshed] = useState<string>(new Date().toLocaleTimeString('ar-EG'));
@@ -52,9 +55,19 @@ export const PublicCatalogView: React.FC<Props> = ({
       const nextMode = !internalDarkMode;
       setInternalDarkMode(nextMode);
       if (typeof document !== 'undefined') {
-        document.documentElement.classList.remove('light-mode');
-        document.documentElement.classList.add(nextMode ? 'dark-mode' : 'light-mode');
-        document.body.classList.toggle('light-mode', !nextMode);
+        const root = document.documentElement;
+        const body = document.body;
+        if (nextMode) {
+          root.classList.remove('light-mode');
+          root.classList.add('dark-mode');
+          body.classList.remove('light-mode');
+          body.classList.add('dark-mode');
+        } else {
+          root.classList.remove('dark-mode', 'dark');
+          root.classList.add('light-mode');
+          body.classList.remove('dark-mode', 'dark');
+          body.classList.add('light-mode');
+        }
         localStorage.setItem('hermes-theme', nextMode ? 'dark' : 'light');
       }
     }
@@ -225,13 +238,15 @@ export const PublicCatalogView: React.FC<Props> = ({
 
   const displayName = company.name?.trim() || 'المعرض العقاري للمشروعات والوحدات';
 
-  // Construct WhatsApp inquiry link
+  // Construct WhatsApp inquiry link tailored for sold vs available units
   const getWhatsAppLink = (u: Unit) => {
     const phone = company.phone ? company.phone.replace(/[^0-9]/g, '') : '';
-    const text = encodeURIComponent(
-      `مرحباً، أود الاستفسار عن تفاصيل الوحدة رقم (${u.unitNumber}) في مشروع (${u.building}) - ${formatFloorName(u.floor)}، المساحة ${u.area} م² المعروضة في موقعكم.`
-    );
-    return phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+    const text = u.status === 'مباعة'
+      ? `مرحباً، اطلعت على الوحدة رقم (${u.unitNumber}) في مشروع (${u.building}) في معرضكم ووجدتها مباعة، وأود الاستفسار عن الوحدات المتاحة الأخرى أو البدائل المشابهة لديكم في هذا المشروع أو المشاريع الأخرى.`
+      : u.status === 'محجوزة'
+      ? `مرحباً، أود الاستفسار عن الوحدة رقم (${u.unitNumber}) في مشروع (${u.building}) - ${formatFloorName(u.floor)}، المسجلة كـ (محجوزة)، لمعرفة إمكانية الحجز أو البدائل المتاحة.`
+      : `مرحباً، أود الاستفسار عن تفاصيل وحجز الوحدة رقم (${u.unitNumber}) في مشروع (${u.building}) - ${formatFloorName(u.floor)}، المساحة ${u.area} م² المعروضة في موقعكم.`;
+    return phone ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
   };
 
   const hasActiveFilters = selectedBuilding !== 'الكل' || selectedFloor !== 'الكل' || statusFilter !== 'الكل' || searchTerm.trim() !== '';
@@ -250,33 +265,57 @@ export const PublicCatalogView: React.FC<Props> = ({
         : 'bg-[#f8fafc] text-slate-900 selection:bg-indigo-500 selection:text-white'
     }`}>
       {/* Top Architectural Navigation Bar */}
-      <header className={`sticky top-0 z-40 backdrop-blur-2xl border-b transition-colors shadow-xl ${
+      <header className={`sticky top-0 z-40 backdrop-blur-2xl border-b transition-colors shadow-md ${
         isDarkMode
-          ? 'bg-[#090e1c]/90 border-slate-800/90 text-white'
-          : 'bg-white/90 border-slate-200/90 text-slate-900'
+          ? 'bg-[#090e1c]/98 border-slate-800/90 text-white'
+          : 'bg-white/98 border-slate-200/90 text-slate-900'
       }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-0 min-h-[4.25rem] sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo & Real Estate Brand */}
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-700 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
-              <Building2 className="w-6 h-6" />
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {(onBack || onGoToLogin) && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onBack) {
+                    onBack();
+                  } else if (typeof window !== 'undefined' && window.history.length > 1) {
+                    window.history.back();
+                  } else if (onGoToLogin) {
+                    onGoToLogin();
+                  }
+                }}
+                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold border transition cursor-pointer shadow-xs shrink-0 ${
+                  isDarkMode
+                    ? 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:border-slate-600'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
+                }`}
+                title="الرجوع للصفحة السابقة"
+              >
+                <ArrowRight className="w-3.5 h-3.5 text-amber-500" />
+                <span>رجوع</span>
+              </button>
+            )}
+
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-700 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20 shrink-0">
+              <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className={`text-base sm:text-lg font-black tracking-tight ${
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h1 className={`text-sm sm:text-base md:text-lg font-black tracking-tight truncate max-w-[170px] sm:max-w-xs md:max-w-md ${
                   isDarkMode ? 'text-white' : 'text-slate-900'
-                }`}>
+                }`} title={displayName}>
                   {displayName}
                 </h1>
-                <span className="hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-400/15 text-amber-500 border border-amber-400/30">
+                <span className="hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-400/15 text-amber-600 dark:text-amber-400 border border-amber-400/30 shrink-0">
                   بوابة الزائرين
                 </span>
               </div>
-              <p className={`text-[11px] flex items-center gap-1.5 mt-0.5 ${
+              <p className={`text-[10px] sm:text-[11px] items-center gap-1.5 mt-0.5 hidden xs:flex truncate ${
                 isDarkMode ? 'text-slate-400' : 'text-slate-600'
               }`}>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>المخطط العام واستعراض الوحدات المتاحة لحظياً</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                <span className="truncate">المخطط العام واستعراض الوحدات المتاحة لحظياً</span>
               </p>
             </div>
           </div>
@@ -381,8 +420,13 @@ export const PublicCatalogView: React.FC<Props> = ({
         </div>
       </section>
 
-      {/* Summary Metrics Bar */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
+      {/* Summary Metrics Bar - Apple Motion */}
+      <motion.section 
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 350, damping: 28 }}
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20"
+      >
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           <div className="glass-panel p-4 sm:p-5 rounded-3xl text-center border shadow-xl transition-transform hover:scale-[1.02]">
             <span className={`text-[11px] block mb-1 font-bold tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
@@ -420,7 +464,7 @@ export const PublicCatalogView: React.FC<Props> = ({
             </span>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1 w-full space-y-10">
@@ -642,19 +686,34 @@ export const PublicCatalogView: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Units Grid */}
+          {/* Units Grid - Apple Staggered Spring Animation */}
           {filteredUnits.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredUnits.map((u) => {
-                const rooms = u.roomsCount || (u.area >= 160 ? 4 : u.area >= 120 ? 3 : 2);
-                const baths = u.bathroomsCount || (u.area >= 140 ? 2 : 1);
-                const pricePerM2 = u.area > 0 ? Math.round(u.price / u.area) : 0;
+            <motion.div 
+              layout
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              <AnimatePresence>
+                {filteredUnits.map((u, index) => {
+                  const rooms = u.roomsCount || (u.area >= 160 ? 4 : u.area >= 120 ? 3 : 2);
+                  const baths = u.bathroomsCount || (u.area >= 140 ? 2 : 1);
+                  const pricePerM2 = u.area > 0 ? Math.round(u.price / u.area) : 0;
 
-                return (
-                  <div
-                    key={u.id}
-                    className="glass-card rounded-3xl p-5 border shadow-xl flex flex-col justify-between group transition-all duration-300 hover:-translate-y-1.5 relative overflow-hidden"
-                  >
+                  return (
+                    <motion.div
+                      key={u.id}
+                      layout
+                      initial={{ opacity: 0, y: 22, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 350,
+                        damping: 26,
+                        delay: Math.min(index * 0.04, 0.35)
+                      }}
+                      whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                      className="glass-card rounded-3xl p-5 border shadow-xl flex flex-col justify-between group relative overflow-hidden"
+                    >
                     {/* Top Card Bar: Building & Unit Number & Status */}
                     <div className="space-y-4">
                       <div className="flex items-start justify-between gap-3">
@@ -764,6 +823,17 @@ export const PublicCatalogView: React.FC<Props> = ({
 
                     {/* Action Buttons */}
                     <div className="pt-4 mt-4 border-t border-slate-200/20 flex flex-col gap-2">
+                      {onSelectUnit && (
+                        <button
+                          type="button"
+                          onClick={() => onSelectUnit(u.id)}
+                          className="w-full py-2.5 px-3 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-700 text-white transition flex items-center justify-center gap-2 shadow-md shadow-indigo-600/25 cursor-pointer"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>عرض تفاصيل ومواصفات الوحدة</span>
+                        </button>
+                      )}
+
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
@@ -796,34 +866,49 @@ export const PublicCatalogView: React.FC<Props> = ({
                         href={getWhatsAppLink(u)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full py-2.5 px-3 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer"
+                        className={`w-full py-2.5 px-3 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 shadow-md cursor-pointer ${
+                          u.status === 'مباعة'
+                            ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white shadow-teal-600/20'
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                        }`}
                       >
                         <MessageSquare className="w-4 h-4" />
-                        <span>استفسار واتساب مباشر عن الوحدة</span>
+                        <span>
+                          {u.status === 'مباعة'
+                            ? 'استعلام عن وحدات أخرى متاحة عبر واتساب'
+                            : u.status === 'محجوزة'
+                            ? 'استفسار عن إمكانية الحجز والبدائل'
+                            : 'استفسار واتساب مباشر عن الوحدة'}
+                        </span>
                       </a>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
-            </div>
+              </AnimatePresence>
+            </motion.div>
           ) : (
             <div className="glass-panel p-12 rounded-3xl text-center border shadow-xl space-y-4 max-w-lg mx-auto">
               <div className="w-16 h-16 rounded-3xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto border border-amber-500/20">
-                <Search className="w-8 h-8" />
+                {units.length === 0 ? <Building2 className="w-8 h-8" /> : <Search className="w-8 h-8" />}
               </div>
               <h4 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                لا توجد وحدات مطابقة للخيارات المحددة
+                {units.length === 0 ? 'مرحباً بك في المعرض العقاري' : 'لا توجد وحدات مطابقة للخيارات المحددة'}
               </h4>
               <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                جرب تغيير العمارة أو الدور أو مسح نص البحث لاستعراض باقي الوحدات المتاحة في المعرض.
+                {units.length === 0 
+                  ? 'لم يتم تسجيل أي وحدات معمارية بعد. ستظهر كافة الوحدات السكنية والمخططات هنا تلقائياً فور إضافتها من لوحة إدارة المشروع.'
+                  : 'جرب تغيير العمارة أو الدور أو مسح نص البحث لاستعراض باقي الوحدات المتاحة في المعرض.'}
               </p>
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition shadow-md cursor-pointer"
-              >
-                عرض كافة الوحدات والعمارات
-              </button>
+              {units.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition shadow-md cursor-pointer"
+                >
+                  عرض كافة الوحدات والعمارات
+                </button>
+              )}
             </div>
           )}
         </section>
@@ -965,10 +1050,20 @@ export const PublicCatalogView: React.FC<Props> = ({
                 href={getWhatsAppLink(selectedUnitForModal)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                className={`w-full sm:w-auto px-6 py-2.5 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-md cursor-pointer ${
+                  selectedUnitForModal.status === 'مباعة'
+                    ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white shadow-teal-600/20'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
               >
                 <MessageSquare className="w-4 h-4" />
-                <span>حجز أو استفسار عبر واتساب</span>
+                <span>
+                  {selectedUnitForModal.status === 'مباعة'
+                    ? 'استعلام عن وحدات أخرى متاحة عبر واتساب'
+                    : selectedUnitForModal.status === 'محجوزة'
+                    ? 'استفسار عن إمكانية الحجز والبدائل'
+                    : 'حجز أو استفسار عبر واتساب'}
+                </span>
               </a>
             </div>
           </div>

@@ -6,6 +6,7 @@ import {
   CheckCircle, AlertCircle, Calendar, DollarSign,
   Trash2, PlusCircle, Check, Clock, Sparkles
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ManualInstallmentItem {
   id: string;
@@ -315,45 +316,61 @@ export const SalesView: React.FC<Props> = ({
     downloadCSV('عقود_البيع', headers, rows);
   };
 
+  const springTransition = { type: 'spring' as const, stiffness: 380, damping: 28 };
+
   return (
     <div className="space-y-6">
       {/* Header and Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-8 rounded-3xl glass-panel border border-indigo-500/20 shadow-2xl shadow-indigo-500/10 mb-6">
+      <motion.div
+        initial={{ opacity: 0, y: -15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={springTransition}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-8 rounded-3xl glass-panel border border-indigo-500/20 shadow-2xl shadow-indigo-500/10 mb-6"
+      >
         <div>
           <div className="flex items-center gap-3">
             <span className="text-3xl p-2.5 rounded-2xl bg-emerald-500/20 border border-emerald-500/30">📜</span>
             <div>
-              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-emerald-200 to-cyan-300 bg-clip-text text-transparent">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:bg-gradient-to-r dark:from-white dark:via-emerald-200 dark:to-cyan-300 dark:bg-clip-text dark:text-transparent">
                 إدارة العقود والعمليات العقارية
               </h2>
-              <p className="text-slate-300 text-sm mt-1 font-medium">
+              <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 font-medium">
                 إبرام عقود البيع، توليد جداول الأقساط آلياً، وطباعة العقود الرسمية
               </p>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2.5">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition border border-slate-200"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition border border-slate-200 cursor-pointer"
           >
             <Download className="w-4 h-4" />
             <span>تصدير Excel</span>
-          </button>
+          </motion.button>
           {canEdit && (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => setIsFormOpen(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition shadow-sm"
+              className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition shadow-sm cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>إبرام عقد بيع جديد</span>
-            </button>
+            </motion.button>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Search Bar */}
-      <div className="glass-panel p-5 rounded-3xl shadow-xl shadow-indigo-500/5 flex items-center justify-between border border-indigo-500/20">
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springTransition, delay: 0.05 }}
+        className="glass-panel p-5 rounded-3xl shadow-xl shadow-indigo-500/5 flex items-center justify-between border border-indigo-500/20"
+      >
         <div className="relative w-full max-w-md">
           <Search className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
           <input
@@ -367,23 +384,30 @@ export const SalesView: React.FC<Props> = ({
         <div className="text-xs text-slate-500 font-semibold">
           عدد العقود: {filteredContracts.length}
         </div>
-      </div>
+      </motion.div>
 
       {/* New Contract Modal */}
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150 my-6">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h3 className="font-bold text-slate-800 text-lg">إبرام عقد بيع وحدة جديدة</h3>
-              <button
-                onClick={resetForm}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition"
-              >
-                ✕
-              </button>
-            </div>
+      <AnimatePresence>
+        {isFormOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 12 }}
+              transition={springTransition}
+              className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-200 my-6"
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <h3 className="font-bold text-slate-800 text-lg">إبرام عقد بيع وحدة جديدة</h3>
+                <button
+                  onClick={resetForm}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
 
-            <form onSubmit={handleCreateContract} className="p-6 space-y-5">
+              <form onSubmit={handleCreateContract} className="p-6 space-y-5">
               {formError && (
                 <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl flex items-center gap-2 border border-red-200">
                   <AlertCircle className="w-4 h-4 shrink-0" />
@@ -733,44 +757,53 @@ export const SalesView: React.FC<Props> = ({
               <div className="flex gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition shadow-sm"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition shadow-sm cursor-pointer"
                 >
                   حفظ العقد وتوليد الأقساط وطباعة العقد
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition"
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition cursor-pointer"
                 >
                   إلغاء
                 </button>
               </div>
             </form>
-          </div>
+          </motion.div>
         </div>
       )}
+    </AnimatePresence>
 
-      {/* Contracts Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Contracts Table - Apple Glassmorphism Design */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springTransition, delay: 0.1 }}
+        className="glass-panel rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-2xl overflow-hidden"
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
-            <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 font-bold">
+            <thead className="bg-slate-100/70 dark:bg-slate-900/80 text-slate-800 dark:text-slate-100 border-b border-slate-200/80 dark:border-white/10 font-black">
               <tr>
-                <th className="py-3 px-4">رقم العقد</th>
-                <th className="py-3 px-4">الوحدة والعمارة</th>
-                <th className="py-3 px-4">العميل المشتري</th>
-                <th className="py-3 px-4">إجمالي السعر</th>
-                <th className="py-3 px-4">المقدم المدفوع</th>
-                <th className="py-3 px-4">المتبقي المطلوب</th>
-                <th className="py-3 px-4">تاريخ التعاقد</th>
-                <th className="py-3 px-4 text-center">إجراءات</th>
+                <th className="py-4 px-5 font-black">رقم العقد</th>
+                <th className="py-4 px-5 font-bold">الوحدة والعمارة</th>
+                <th className="py-4 px-5 font-bold">العميل المشتري</th>
+                <th className="py-4 px-5 font-bold">إجمالي السعر</th>
+                <th className="py-4 px-5 font-bold">المقدم المدفوع</th>
+                <th className="py-4 px-5 font-bold">المتبقي المطلوب</th>
+                <th className="py-4 px-5 font-bold">تاريخ التعاقد</th>
+                <th className="py-4 px-5 text-center font-bold">إجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-200/40 dark:divide-white/5">
               {filteredContracts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
-                    لا توجد عقود مسجلة تطابق البحث
+                  <td colSpan={8} className="py-14 text-center text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <FileText className="w-8 h-8 opacity-40" />
+                      <p className="font-semibold text-sm">لا توجد عقود مسجلة تطابق البحث</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -780,43 +813,43 @@ export const SalesView: React.FC<Props> = ({
                   const remaining = contract.totalPrice - contract.downPayment;
 
                   return (
-                    <tr key={contract.id} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                    <tr key={contract.id} className="hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors duration-150">
+                      <td className="py-4 px-5 font-mono font-black text-slate-900 dark:text-white">
                         #{contract.id}
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className="font-bold text-slate-800 block">
+                      <td className="py-4 px-5">
+                        <span className="font-bold text-slate-800 dark:text-slate-100 block">
                           وحدة {unit?.unitNumber || '-'}
                         </span>
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
                           {unit?.building} (الدور {unit?.floor})
                         </span>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className="font-semibold text-slate-800 block">
+                      <td className="py-4 px-5">
+                        <span className="font-bold text-slate-800 dark:text-slate-100 block">
                           {customer?.name || '-'}
                         </span>
-                        <span className="text-xs text-slate-400 font-mono">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                           {customer?.phone || ''}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900">
+                      <td className="py-4 px-5 font-black text-slate-900 dark:text-white">
                         {formatCurrency(contract.totalPrice)}
                       </td>
-                      <td className="py-3.5 px-4 font-medium text-emerald-700">
+                      <td className="py-4 px-5 font-bold text-emerald-700 dark:text-emerald-400">
                         {formatCurrency(contract.downPayment)}
                       </td>
-                      <td className="py-3.5 px-4 font-bold text-blue-700">
+                      <td className="py-4 px-5 font-black text-blue-700 dark:text-blue-400">
                         {formatCurrency(remaining)}
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-xs text-slate-500">
+                      <td className="py-4 px-5 font-mono text-xs text-slate-500 dark:text-slate-400">
                         {contract.contractDate}
                       </td>
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-4 px-5 text-center">
                         <button
                           onClick={() => onOpenContractModal(contract)}
                           title="عرض وطباعة العقد"
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-bold transition border border-blue-200 dark:border-blue-800 cursor-pointer"
                         >
                           <Printer className="w-3.5 h-3.5" />
                           <span>عرض وطباعة</span>
@@ -829,7 +862,7 @@ export const SalesView: React.FC<Props> = ({
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

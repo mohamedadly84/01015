@@ -3,6 +3,7 @@ import { AppDatabase } from '../types';
 import { formatCurrency, formatNumber } from '../utils/helpers';
 import { exportElementToPdf, exportElementToImage, printDirectly } from '../utils/pdfExport';
 import { X, Printer, TrendingUp, Download, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface Props {
   db: AppDatabase;
@@ -79,7 +80,13 @@ export const SummaryReportModal: React.FC<Props> = ({ db, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150 my-6 max-h-[92vh] flex flex-col">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 12 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden border border-slate-200 my-6 max-h-[92vh] flex flex-col"
+      >
         {/* Top actions */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-slate-200 bg-slate-50 print:hidden shrink-0">
           <div className="flex items-center gap-2">
@@ -286,7 +293,7 @@ export const SummaryReportModal: React.FC<Props> = ({ db, onClose }) => {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

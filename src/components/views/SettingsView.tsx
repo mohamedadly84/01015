@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AppDatabase, CompanySettings } from '../../types';
-import { initialData, sampleDemoData } from '../../services/initialData';
+import { initialData } from '../../services/initialData';
 import { downloadCSV } from '../../utils/helpers';
 import {
   Settings, Save, Download, Upload, RotateCcw, Building2,
@@ -64,14 +64,6 @@ export const SettingsView: React.FC<Props> = ({ db, onUpdateDb, onSyncServer }) 
     }
   };
 
-  const handleLoadDemoData = () => {
-    if (confirm('هل ترغب في تحميل بيانات نموذجية تجريبية للاختبار؟')) {
-      onUpdateDb(sampleDemoData);
-      setSettings(sampleDemoData.settings);
-      alert('✅ تم تحميل البيانات النموذجية بنجاح.');
-    }
-  };
-
   const handleExportAllTablesCSV = () => {
     // Generate combined summary CSV
     const headers = ['النوع / الجدول', 'المعرف', 'البيان', 'القيمة 1', 'القيمة 2', 'الحالة / التاريخ'];
@@ -113,10 +105,10 @@ export const SettingsView: React.FC<Props> = ({ db, onUpdateDb, onSyncServer }) 
           <div className="flex items-center gap-3">
             <span className="text-3xl p-2.5 rounded-2xl bg-slate-500/20 border border-slate-500/30">⚙️</span>
             <div>
-              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:bg-gradient-to-r dark:from-white dark:via-slate-200 dark:to-indigo-300 dark:bg-clip-text dark:text-transparent">
                 إعدادات النظام والنسخ الاحتياطي
               </h2>
-              <p className="text-slate-300 text-sm mt-1 font-medium">
+              <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 font-medium">
                 تخصيص بيانات الشركة، تصدير البيانات إلى Excel، وتنزيل أو استرجاع النسخ الاحتياطية
               </p>
             </div>
@@ -125,7 +117,7 @@ export const SettingsView: React.FC<Props> = ({ db, onUpdateDb, onSyncServer }) 
 
         <button
           onClick={handleExportAllTablesCSV}
-          className="flex items-center gap-1.5 px-4 py-2 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 rounded-xl text-sm font-semibold transition border border-slate-700"
+          className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 dark:text-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold transition border cursor-pointer"
         >
           <Download className="w-4 h-4" />
           <span>تصدير شامل CSV</span>
@@ -332,20 +324,6 @@ export const SettingsView: React.FC<Props> = ({ db, onUpdateDb, onSyncServer }) 
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>مسح وتفريغ كافة البيانات الآن</span>
-              </button>
-            </div>
-
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-              <h4 className="font-bold text-slate-800 text-xs">تحميل بيانات تجريبية (اختياري)</h4>
-              <p className="text-[11px] text-slate-500">
-                إذا رغبت في أي وقت بتجربة شاشات البرنامج ببيانات وهمية.
-              </p>
-              <button
-                onClick={handleLoadDemoData}
-                className="flex items-center gap-2 py-2 px-4 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-semibold transition"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>تحميل بيانات نموذجية تجريبية</span>
               </button>
             </div>
           </div>

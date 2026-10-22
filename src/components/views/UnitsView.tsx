@@ -10,6 +10,7 @@ import {
   CheckCircle, AlertCircle, Eye, Calculator, Sparkles, Globe,
   Compass, FileText, Upload, X, Copy, Check
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Props {
   db: AppDatabase;
@@ -262,18 +263,25 @@ export const UnitsView: React.FC<Props> = ({
   const formEstimatedProfit = formPrice - formCalculatedCost;
   const formMargin = formPrice > 0 ? Math.round((formEstimatedProfit / formPrice) * 100) : 0;
 
+  const springTransition = { type: 'spring' as const, stiffness: 380, damping: 28 };
+
   return (
     <div className="space-y-6">
       {/* Header and Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-8 rounded-3xl glass-panel border border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
+      <motion.div
+        initial={{ opacity: 0, y: -15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={springTransition}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-8 rounded-3xl glass-panel border border-indigo-500/20 shadow-2xl shadow-indigo-500/10"
+      >
         <div>
           <div className="flex items-center gap-3">
             <span className="text-3xl p-2.5 rounded-2xl bg-blue-500/20 border border-blue-500/30">🏢</span>
             <div>
-              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-indigo-200 to-cyan-300 bg-clip-text text-transparent">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:bg-gradient-to-r dark:from-white dark:via-indigo-200 dark:to-cyan-300 dark:bg-clip-text dark:text-transparent">
                 إدارة الوحدات السكنية والعقارات
               </h2>
-              <p className="text-slate-300 text-sm mt-1 font-medium">
+              <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 font-medium">
                 عرض وتعديل الوحدات، المخططات الهندسية، الأسعار، وتوليد رموز QR Code
               </p>
             </div>
@@ -282,46 +290,59 @@ export const UnitsView: React.FC<Props> = ({
 
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Visitor Public Catalog Link & Copy */}
-          <button
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={() => window.open('/?mode=visitor', '_blank')}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-sm font-semibold transition border border-indigo-200 shadow-xs cursor-pointer"
             title="فتح موقع ومعرض الوحدات المخصص للزائرين"
           >
             <Globe className="w-4 h-4 text-indigo-600" />
             <span>معرض الزوار 🌐</span>
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={handleCopyCatalogLink}
             className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition border border-slate-200 cursor-pointer"
             title="نسخ رابط معرض الزوار لإرساله للعميل عبر واتساب"
           >
             {copiedCatalog ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
             <span>{copiedCatalog ? 'تم نسخ الرابط' : 'نسخ رابط الزوار'}</span>
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition border border-slate-200"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition border border-slate-200 cursor-pointer"
           >
             <Download className="w-4 h-4" />
             <span>تصدير Excel</span>
-          </button>
+          </motion.button>
 
           {canEdit && (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
               onClick={handleOpenAdd}
               className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition shadow-sm cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>إضافة وحدة جديدة</span>
-            </button>
+            </motion.button>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Search and Filters */}
-      <div className="glass-panel p-5 rounded-3xl shadow-xl shadow-indigo-500/5 flex flex-col md:flex-row gap-4 items-center justify-between border border-indigo-500/20">
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springTransition, delay: 0.05 }}
+        className="glass-panel p-5 rounded-3xl shadow-xl shadow-indigo-500/5 flex flex-col md:flex-row gap-4 items-center justify-between border border-indigo-500/20"
+      >
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
           <input
@@ -363,15 +384,22 @@ export const UnitsView: React.FC<Props> = ({
             </select>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Add / Edit Unit Modal Form */}
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-xl w-full p-6 border border-slate-200 animate-in fade-in zoom-in-95 duration-150 my-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Building className="w-5 h-5 text-blue-600" />
+      <AnimatePresence>
+        {isFormOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 10 }}
+              transition={springTransition}
+              className="bg-white rounded-3xl shadow-2xl max-w-xl w-full p-6 border border-slate-200 my-6"
+            >
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <Building className="w-5 h-5 text-blue-600" />
                 <span>{editingUnitId ? 'تعديل بيانات الوحدة' : 'إضافة وحدة سكنية جديدة'}</span>
               </h3>
               <button
@@ -656,91 +684,110 @@ export const UnitsView: React.FC<Props> = ({
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition cursor-pointer"
                 >
                   إلغاء
                 </button>
               </div>
             </form>
-          </div>
+          </motion.div>
         </div>
       )}
+    </AnimatePresence>
 
       {/* Blueprint / Floor Plan Quick Preview Modal */}
-      {previewFloorPlanUnit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 text-right space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div>
-                <h3 className="text-base font-bold text-white">
-                  المخطط الهندسي التوضيحي • وحدة {previewFloorPlanUnit.unitNumber} ({previewFloorPlanUnit.building})
-                </h3>
-                <p className="text-xs text-slate-400">
-                  المساحة: {previewFloorPlanUnit.area} م² • الدور {previewFloorPlanUnit.floor} • الحالة: {previewFloorPlanUnit.status}
-                </p>
+      <AnimatePresence>
+        {previewFloorPlanUnit && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 10 }}
+              transition={springTransition}
+              className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 text-right space-y-4 shadow-2xl"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    المخطط الهندسي التوضيحي • وحدة {previewFloorPlanUnit.unitNumber} ({previewFloorPlanUnit.building})
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    المساحة: {previewFloorPlanUnit.area} م² • الدور {previewFloorPlanUnit.floor} • الحالة: {previewFloorPlanUnit.status}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setPreviewFloorPlanUnit(null)}
+                  className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 cursor-pointer"
+                >
+                  ✕
+                </button>
               </div>
-              <button
-                onClick={() => setPreviewFloorPlanUnit(null)}
-                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800"
-              >
-                ✕
-              </button>
-            </div>
 
-            <UnitFloorPlan
-              unit={previewFloorPlanUnit}
-              heightClass="h-64 sm:h-72"
-              showControls={true}
-              interactive={true}
-            />
+              <UnitFloorPlan
+                unit={previewFloorPlanUnit}
+                heightClass="h-64 sm:h-72"
+                showControls={true}
+                interactive={true}
+              />
 
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => {
-                  const targetUnit = previewFloorPlanUnit;
-                  setPreviewFloorPlanUnit(null);
-                  onOpenQr(targetUnit);
-                }}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5"
-              >
-                <QrCode className="w-3.5 h-3.5" />
-                <span>فتح رمز QR والبروشور PDF</span>
-              </button>
-              <button
-                onClick={() => setPreviewFloorPlanUnit(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition"
-              >
-                إغلاق
-              </button>
-            </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => {
+                    const targetUnit = previewFloorPlanUnit;
+                    setPreviewFloorPlanUnit(null);
+                    onOpenQr(targetUnit);
+                  }}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>فتح رمز QR والبروشور PDF</span>
+                </motion.button>
+                <button
+                  onClick={() => setPreviewFloorPlanUnit(null)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer"
+                >
+                  إغلاق
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
-      {/* Units Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+      {/* Units Table - Apple Glassmorphism Design */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springTransition, delay: 0.1 }}
+        className="glass-panel rounded-3xl border border-slate-200/80 dark:border-white/10 overflow-hidden shadow-2xl"
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
-            <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+            <thead className="bg-slate-100/70 dark:bg-slate-900/80 text-slate-800 dark:text-slate-100 font-black border-b border-slate-200/80 dark:border-white/10">
               <tr>
-                <th className="py-3 px-3">رقم الوحدة</th>
-                <th className="py-3 px-3">العمارة / المشروع</th>
-                <th className="py-3 px-3">الدور</th>
-                <th className="py-3 px-3">المساحة</th>
-                <th className="py-3 px-3">المخطط 📐</th>
-                <th className="py-3 px-3">التكلفة المحسوبة</th>
-                <th className="py-3 px-3">السعر المطلوب</th>
-                <th className="py-3 px-3">الربح المتوقع</th>
-                <th className="py-3 px-3">الحالة اللحظية</th>
-                <th className="py-3 px-3 text-center">QR والبروشور</th>
-                {canEdit && <th className="py-3 px-3 text-center">إجراءات</th>}
+                <th className="py-4 px-4 font-black">رقم الوحدة</th>
+                <th className="py-4 px-4 font-bold">العمارة / المشروع</th>
+                <th className="py-4 px-4 font-bold">الدور</th>
+                <th className="py-4 px-4 font-bold">المساحة</th>
+                <th className="py-4 px-4 font-bold">المخطط 📐</th>
+                <th className="py-4 px-4 font-bold">التكلفة المحسوبة</th>
+                <th className="py-4 px-4 font-bold">السعر المطلوب</th>
+                <th className="py-4 px-4 font-bold">الربح المتوقع</th>
+                <th className="py-4 px-4 font-bold">الحالة اللحظية</th>
+                <th className="py-4 px-4 text-center font-bold">QR والبروشور</th>
+                {canEdit && <th className="py-4 px-4 text-center font-bold">إجراءات</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-200/40 dark:divide-white/5">
               {filteredUnits.length === 0 ? (
                 <tr>
-                  <td colSpan={canEdit ? 11 : 10} className="py-8 text-center text-slate-400 text-sm">
-                    لا توجد وحدات مطابقة للبحث أو التصفية الحالية
+                  <td colSpan={canEdit ? 11 : 10} className="py-12 text-center text-slate-400 text-sm">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Building className="w-8 h-8 opacity-40" />
+                      <p className="font-semibold">لا توجد وحدات مطابقة للبحث أو التصفية الحالية</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -752,50 +799,50 @@ export const UnitsView: React.FC<Props> = ({
                   const hasContract = db.contracts.some(c => c.unitId === unit.id);
 
                   return (
-                    <tr key={unit.id} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3 px-3 font-black text-slate-900 text-base">
+                    <tr key={unit.id} className="hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors duration-150">
+                      <td className="py-4 px-4 font-black text-slate-900 dark:text-white text-base">
                         {unit.unitNumber}
                       </td>
-                      <td className="py-3 px-3 font-semibold text-slate-700">
+                      <td className="py-4 px-4 font-semibold text-slate-700 dark:text-slate-200">
                         {unit.building}
                       </td>
-                      <td className="py-3 px-3 text-slate-600">
+                      <td className="py-4 px-4 text-slate-600 dark:text-slate-300">
                         الدور {unit.floor}
                       </td>
-                      <td className="py-3 px-3 font-bold text-blue-700">
+                      <td className="py-4 px-4 font-bold text-blue-700 dark:text-blue-400">
                         {unit.area} م²
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-4 px-4">
                         <button
                           onClick={() => setPreviewFloorPlanUnit(unit)}
-                          className="px-2 py-1 bg-slate-100 hover:bg-indigo-50 text-indigo-700 hover:text-indigo-800 rounded-lg text-xs font-semibold transition border border-slate-200 flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1.5 bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-bold transition border border-slate-200 dark:border-slate-700 flex items-center gap-1 cursor-pointer"
                           title="معاينة المخطط والرسم التوضيحي"
                         >
                           <Compass className="w-3.5 h-3.5" />
                           <span>معاينة</span>
                         </button>
                       </td>
-                      <td className="py-3 px-3 font-bold text-rose-700 bg-rose-50/30">
+                      <td className="py-4 px-4 font-bold text-rose-700 dark:text-rose-400">
                         {formatCurrency(unitCost)}
                       </td>
-                      <td className="py-3 px-3 font-bold text-emerald-700">
+                      <td className="py-4 px-4 font-black text-emerald-700 dark:text-emerald-400">
                         {formatCurrency(unit.price)}
                       </td>
-                      <td className={`py-3 px-3 font-semibold text-xs ${profit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      <td className={`py-4 px-4 font-semibold text-xs ${profit >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                         {formatCurrency(profit)}
-                        <span className="text-[10px] text-slate-400 block">({margin}%)</span>
+                        <span className="text-[10px] text-slate-400 block font-mono">({margin}%)</span>
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-4 px-4">
                         {canEdit ? (
                           <select
                             value={unit.status}
                             onChange={e => handleQuickStatusChange(unit.id, e.target.value as UnitStatus)}
-                            className={`text-xs font-bold py-1 px-2.5 rounded-lg border focus:outline-none cursor-pointer ${
+                            className={`text-xs font-bold py-1.5 px-3 rounded-xl border focus:outline-none cursor-pointer ${
                               unit.status === 'متاحة'
-                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/40'
                                 : unit.status === 'محجوزة'
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700/40'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700/40'
                             }`}
                           >
                             <option value="متاحة">متاحة</option>
@@ -804,34 +851,34 @@ export const UnitsView: React.FC<Props> = ({
                           </select>
                         ) : (
                           <span
-                            className={`inline-block text-xs font-bold py-1 px-2.5 rounded-lg ${
+                            className={`inline-block text-xs font-bold py-1.5 px-3 rounded-xl border ${
                               unit.status === 'متاحة'
-                                ? 'bg-blue-50 text-blue-700'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/40'
                                 : unit.status === 'محجوزة'
-                                ? 'bg-amber-50 text-amber-700'
-                                : 'bg-emerald-50 text-emerald-700'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700/40'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700/40'
                             }`}
                           >
                             {unit.status}
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-center">
+                      <td className="py-4 px-4 text-center">
                         <button
                           onClick={() => onOpenQr(unit)}
                           title="عرض رمز QR Code والبروشور PDF"
-                          className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition border border-indigo-200 cursor-pointer"
+                          className="p-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-xl transition border border-indigo-200 dark:border-indigo-800 cursor-pointer inline-flex items-center justify-center"
                         >
                           <QrCode className="w-4 h-4" />
                         </button>
                       </td>
                       {canEdit && (
-                        <td className="py-3 px-3 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
+                        <td className="py-4 px-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => handleOpenEdit(unit)}
                               title="تعديل الوحدة والمخطط"
-                              className="p-1.5 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition"
+                              className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl transition cursor-pointer"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
@@ -839,10 +886,10 @@ export const UnitsView: React.FC<Props> = ({
                               onClick={() => handleDeleteUnit(unit.id)}
                               title={hasContract ? 'لا يمكن حذف وحدة مرتبطة بعقد' : 'حذف الوحدة'}
                               disabled={hasContract}
-                              className={`p-1.5 rounded-lg transition ${
+                              className={`p-2 rounded-xl transition ${
                                 hasContract
-                                  ? 'text-slate-200 cursor-not-allowed'
-                                  : 'hover:bg-red-50 text-slate-400 hover:text-red-600'
+                                  ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                                  : 'hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer'
                               }`}
                             >
                               <Trash2 className="w-4 h-4" />
@@ -858,11 +905,11 @@ export const UnitsView: React.FC<Props> = ({
           </table>
         </div>
 
-        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex justify-between items-center">
-          <span>إجمالي المعروض: {filteredUnits.length} وحدة</span>
-          <span>إجمالي القيمة: {formatCurrency(filteredUnits.reduce((s, u) => s + u.price, 0))}</span>
+        <div className="px-6 py-4 bg-slate-50/70 dark:bg-slate-900/60 border-t border-slate-200/80 dark:border-white/10 text-xs text-slate-600 dark:text-slate-400 flex flex-col sm:flex-row justify-between items-center gap-2 font-medium">
+          <span>إجمالي المعروض: <strong className="font-black text-slate-900 dark:text-white font-mono">{filteredUnits.length}</strong> وحدة</span>
+          <span>إجمالي القيمة: <strong className="font-black text-emerald-600 dark:text-emerald-400 font-mono">{formatCurrency(filteredUnits.reduce((s, u) => s + u.price, 0))}</strong></span>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

@@ -7,6 +7,7 @@ import {
   TrendingUp, Download, Printer, AlertCircle, ArrowUpRight,
   CheckCircle2, DollarSign, PieChart, FileText, Sparkles
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Props {
   db: AppDatabase;
@@ -254,18 +255,25 @@ export const ProjectsView: React.FC<Props> = ({
     printDirectly('project-cost-breakdown-print');
   };
 
+  const springTransition = { type: 'spring' as const, stiffness: 380, damping: 28 };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-8 rounded-3xl glass-panel border border-indigo-500/20 shadow-2xl shadow-indigo-500/10">
+      <motion.div
+        initial={{ opacity: 0, y: -15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={springTransition}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-8 rounded-3xl glass-panel border border-indigo-500/20 shadow-2xl shadow-indigo-500/10"
+      >
         <div>
           <div className="flex items-center gap-3">
             <span className="text-3xl p-2.5 rounded-2xl bg-indigo-500/20 border border-indigo-500/30">🏗️</span>
             <div>
-              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-indigo-200 to-cyan-300 bg-clip-text text-transparent">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:bg-gradient-to-r dark:from-white dark:via-indigo-200 dark:to-cyan-300 dark:bg-clip-text dark:text-transparent">
                 إدارة المشاريع والعمارات وتوزيع التكاليف
               </h2>
-              <p className="text-slate-300 text-sm mt-1 font-medium">
+              <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 font-medium">
                 إدخال وتخصيص أسماء العمارات والمشاريع، ومتابعة مصروفاتها وتقسيم التكلفة على الوحدات بنسبة المساحة (م²)
               </p>
             </div>
@@ -274,32 +282,38 @@ export const ProjectsView: React.FC<Props> = ({
 
         <div className="flex flex-wrap items-center gap-2.5">
           {canEdit && (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
               onClick={handleOpenAddProject}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white rounded-xl text-sm font-bold transition shadow-lg shadow-indigo-600/30 hover:scale-[1.02]"
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white rounded-xl text-sm font-bold transition shadow-lg shadow-indigo-600/30 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>إضافة عمارة أو مشروع جديد</span>
-            </button>
+            </motion.button>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Buildings Cards / Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {allBuildingNames.map(bName => {
+        {allBuildingNames.map((bName, index) => {
           const metrics = calculateBuildingMetrics(db, bName);
           const projObj = projectsList.find(p => p.name === bName);
           const isSelected = selectedBuilding === bName;
 
           return (
-            <div
+            <motion.div
               key={bName}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...springTransition, delay: Math.min(index * 0.05, 0.3) }}
+              whileHover={{ y: -5, transition: { type: 'spring', stiffness: 400, damping: 25 } }}
               onClick={() => setSelectedBuilding(bName)}
               className={`p-6 rounded-3xl transition-all cursor-pointer relative overflow-hidden glass-card group ${
                 isSelected
-                  ? 'border-indigo-500 shadow-xl shadow-indigo-500/10 ring-2 ring-indigo-500/30 bg-slate-900/90'
-                  : 'hover:border-slate-700'
+                  ? 'border-indigo-500 shadow-xl shadow-indigo-500/10 ring-2 ring-indigo-500/30 bg-indigo-50/50 dark:bg-slate-900/90'
+                  : 'hover:border-slate-400 dark:hover:border-slate-700'
               }`}
             >
               {isSelected && (
@@ -309,14 +323,14 @@ export const ProjectsView: React.FC<Props> = ({
               <div className="flex items-start justify-between gap-2 mb-4">
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-lg ${
-                    isSelected ? 'bg-gradient-to-br from-indigo-600 to-cyan-600 text-white shadow-indigo-600/30' : 'bg-slate-800 text-slate-300 border border-slate-700'
+                    isSelected ? 'bg-gradient-to-br from-indigo-600 to-cyan-600 text-white shadow-indigo-600/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                   }`}>
                     🏢
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-base group-hover:text-indigo-300 transition">{bName}</h3>
+                    <h3 className="font-bold text-slate-900 dark:text-white text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition">{bName}</h3>
                     {projObj?.location && (
-                      <span className="text-xs text-slate-400 block mt-0.5">{projObj.location}</span>
+                      <span className="text-xs text-slate-600 dark:text-slate-400 block mt-0.5">{projObj.location}</span>
                     )}
                   </div>
                 </div>
@@ -325,14 +339,14 @@ export const ProjectsView: React.FC<Props> = ({
                   <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={() => handleOpenEditProject(projObj)}
-                      className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 rounded-xl transition"
+                      className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-slate-800 rounded-xl transition"
                       title="تعديل المشروع"
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteProject(projObj)}
-                      className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-xl transition"
+                      className="p-2 text-slate-500 hover:text-red-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:text-red-400 dark:hover:bg-slate-800 rounded-xl transition"
                       title="حذف المشروع"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -342,41 +356,41 @@ export const ProjectsView: React.FC<Props> = ({
               </div>
 
               {/* Metrics Summary Inside Card */}
-              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-800 text-xs">
-                <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800">
-                  <span className="text-slate-400 block mb-1">عدد الوحدات</span>
-                  <span className="font-bold text-white text-sm">
-                    {metrics.unitsCount} <span className="text-[11px] font-normal text-slate-400">وحدة</span>
+              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-200 dark:border-slate-800 text-xs">
+                <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-slate-600 dark:text-slate-400 block mb-1">عدد الوحدات</span>
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">
+                    {metrics.unitsCount} <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">وحدة</span>
                   </span>
                 </div>
 
-                <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800">
-                  <span className="text-slate-400 block mb-1">إجمالي المساحات</span>
-                  <span className="font-bold text-white text-sm">
-                    {formatNumber(metrics.totalArea)} <span className="text-[11px] font-normal text-slate-400">م²</span>
+                <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-slate-600 dark:text-slate-400 block mb-1">إجمالي المساحات</span>
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">
+                    {formatNumber(metrics.totalArea)} <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">م²</span>
                   </span>
                 </div>
 
-                <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800">
-                  <span className="text-slate-400 block mb-1">إجمالي المصروفات</span>
-                  <span className="font-bold text-red-400 text-sm truncate block" title={formatCurrency(metrics.totalExpenses)}>
+                <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-slate-600 dark:text-slate-400 block mb-1">إجمالي المصروفات</span>
+                  <span className="font-bold text-red-600 dark:text-red-400 text-sm truncate block" title={formatCurrency(metrics.totalExpenses)}>
                     {formatCurrency(metrics.totalExpenses)}
                   </span>
                 </div>
 
-                <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800">
-                  <span className="text-slate-400 block mb-1">تكلفة المتر المربع</span>
-                  <span className="font-bold text-cyan-400 text-sm truncate block" title={`${formatCurrency(Math.round(metrics.costPerM2))} / م²`}>
-                    {formatCurrency(Math.round(metrics.costPerM2))} <span className="text-[10px] font-normal text-slate-400">/م²</span>
+                <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-slate-600 dark:text-slate-400 block mb-1">تكلفة المتر المربع</span>
+                  <span className="font-bold text-cyan-700 dark:text-cyan-400 text-sm truncate block" title={`${formatCurrency(Math.round(metrics.costPerM2))} / م²`}>
+                    {formatCurrency(Math.round(metrics.costPerM2))} <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400">/م²</span>
                   </span>
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 flex items-center justify-between text-xs text-indigo-400 font-bold border-t border-slate-800/60">
+              <div className="mt-4 pt-3 flex items-center justify-between text-xs text-indigo-600 dark:text-indigo-400 font-bold border-t border-slate-200 dark:border-slate-800/60">
                 <span>{isSelected ? '✓ المشروع المحدد حالياً' : 'انقر لعرض تفاصيل التكلفة والوحدات'}</span>
                 <ArrowUpRight className="w-4 h-4" />
               </div>
-            </div>
+            </motion.div>
           );
         })}
 
@@ -400,18 +414,23 @@ export const ProjectsView: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Selected Project Analysis & Units Cost Allocation */}
+      {/* Selected Project Analysis & Units Cost Allocation - Apple Glassmorphism Design */}
       {currentMetrics && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springTransition, delay: 0.15 }}
+          className="glass-panel rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-2xl p-6 sm:p-8 space-y-6"
+        >
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-200/60 dark:border-white/10">
             <div>
-              <div className="flex items-center gap-2">
-                <Calculator className="w-6 h-6 text-indigo-600" />
-                <h3 className="text-xl font-bold text-slate-800">
-                  كشف توزيع تكلفة المشروع على الوحدات بنسبة المساحة: <span className="text-indigo-600">{selectedBuilding}</span>
+              <div className="flex items-center gap-2.5">
+                <Calculator className="w-6 h-6 text-indigo-500" />
+                <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                  كشف توزيع تكلفة المشروع على الوحدات بنسبة المساحة: <span className="text-indigo-600 dark:text-indigo-400">{selectedBuilding}</span>
                 </h3>
               </div>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
                 توزيع المصروفات الإنشائية الإجمالية على وحدات العمارة بناءً على مساحة كل وحدة (م²) لتحديد التكلفة الفعلية وهامش الربح
               </p>
             </div>
@@ -420,7 +439,7 @@ export const ProjectsView: React.FC<Props> = ({
               {canEdit && (
                 <button
                   onClick={() => setIsQuickUnitOpen(true)}
-                  className="flex items-center gap-1 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-semibold transition border border-blue-200"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-bold transition border border-blue-200 dark:border-blue-800 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>+ إضافة وحدة لهذا المشروع</span>
@@ -429,21 +448,21 @@ export const ProjectsView: React.FC<Props> = ({
               {onNavigateTab && (
                 <button
                   onClick={() => onNavigateTab('🧾 المصروفات', selectedBuilding)}
-                  className="flex items-center gap-1 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl text-xs font-semibold transition border border-red-200"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 rounded-xl text-xs font-bold transition border border-red-200 dark:border-red-800 cursor-pointer"
                 >
                   <span>مصروفات المشروع ({formatCurrency(currentMetrics.totalExpenses)})</span>
                 </button>
               )}
               <button
                 onClick={handleExportBuildingReportCSV}
-                className="flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition border border-slate-200"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition border border-slate-200 dark:border-slate-700 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>تصدير Excel</span>
               </button>
               <button
                 onClick={handlePrintCostTable}
-                className="flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition border border-slate-200"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition border border-slate-200 dark:border-slate-700 cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
                 <span>طباعة الكشف</span>
@@ -452,33 +471,33 @@ export const ProjectsView: React.FC<Props> = ({
           </div>
 
           {/* Key Formula & Highlights Banner */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-inner">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-2xl bg-gradient-to-r from-slate-100 via-indigo-50 to-slate-100 dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 shadow-sm">
             <div>
-              <span className="text-xs text-slate-400 block mb-1">إجمالي مصروفات العمارة</span>
-              <div className="text-xl font-black text-rose-300">{formatCurrency(currentMetrics.totalExpenses)}</div>
-              <span className="text-[11px] text-slate-400">كافة الفواتير والمقاولين المسجلين</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400 block mb-1">إجمالي مصروفات العمارة</span>
+              <div className="text-xl font-black text-rose-700 dark:text-rose-300">{formatCurrency(currentMetrics.totalExpenses)}</div>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">كافة الفواتير والمقاولين المسجلين</span>
             </div>
 
             <div>
-              <span className="text-xs text-slate-400 block mb-1">إجمالي مساحات الوحدات</span>
-              <div className="text-xl font-black text-blue-300">{formatNumber(currentMetrics.totalArea)} م²</div>
-              <span className="text-[11px] text-slate-400">{currentMetrics.unitsCount} وحدة سكنية / تجارية</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400 block mb-1">إجمالي مساحات الوحدات</span>
+              <div className="text-xl font-black text-blue-700 dark:text-blue-300">{formatNumber(currentMetrics.totalArea)} م²</div>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">{currentMetrics.unitsCount} وحدة سكنية / تجارية</span>
             </div>
 
             <div>
-              <span className="text-xs text-slate-400 block mb-1">تكلفة المتر المربع الفعلي (م²)</span>
-              <div className="text-xl font-black text-emerald-300">
+              <span className="text-xs text-slate-600 dark:text-slate-400 block mb-1">تكلفة المتر المربع الفعلي (م²)</span>
+              <div className="text-xl font-black text-emerald-700 dark:text-emerald-300">
                 {formatCurrency(Math.round(currentMetrics.costPerM2))}
               </div>
-              <span className="text-[11px] text-slate-400">المصروفات ÷ إجمالي المساحات</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">المصروفات ÷ إجمالي المساحات</span>
             </div>
 
             <div>
-              <span className="text-xs text-slate-400 block mb-1">صافي أرباح المشروع التقديري</span>
-              <div className="text-xl font-black text-amber-300">
+              <span className="text-xs text-slate-600 dark:text-slate-400 block mb-1">صافي أرباح المشروع التقديري</span>
+              <div className="text-xl font-black text-amber-700 dark:text-amber-300">
                 {formatCurrency(Math.round(currentMetrics.totalEstimatedProfit))}
               </div>
-              <span className="text-[11px] text-slate-400">إجمالي الإيرادات المتوقعة - المصروفات</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">إجمالي الإيرادات المتوقعة - المصروفات</span>
             </div>
           </div>
 
@@ -596,24 +615,31 @@ export const ProjectsView: React.FC<Props> = ({
               )}
             </table>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Add / Edit Project Modal */}
-      {isProjectModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h3 className="font-bold text-slate-800 text-base">
-                {editingProjectId ? 'تعديل بيانات العمارة أو المشروع' : 'إضافة عمارة أو مشروع جديد'}
-              </h3>
-              <button
-                onClick={() => setIsProjectModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition"
-              >
-                ✕
-              </button>
-            </div>
+      <AnimatePresence>
+        {isProjectModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 12 }}
+              transition={springTransition}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200"
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <h3 className="font-bold text-slate-800 text-base">
+                  {editingProjectId ? 'تعديل بيانات العمارة أو المشروع' : 'إضافة عمارة أو مشروع جديد'}
+                </h3>
+                <button
+                  onClick={() => setIsProjectModalOpen(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
 
             <form onSubmit={handleSaveProject} className="p-6 space-y-4">
               {formError && (
@@ -679,38 +705,46 @@ export const ProjectsView: React.FC<Props> = ({
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition"
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition cursor-pointer"
                 >
                   {editingProjectId ? 'حفظ التعديلات' : 'إضافة المشروع'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsProjectModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition cursor-pointer"
                 >
                   إلغاء
                 </button>
               </div>
             </form>
-          </div>
+          </motion.div>
         </div>
       )}
+    </AnimatePresence>
 
       {/* Quick Add Unit Modal for Selected Building */}
-      {isQuickUnitOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h3 className="font-bold text-slate-800 text-base">
-                إضافة وحدة جديدة في: <span className="text-indigo-600">{selectedBuilding}</span>
-              </h3>
-              <button
-                onClick={() => setIsQuickUnitOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition"
-              >
-                ✕
-              </button>
-            </div>
+      <AnimatePresence>
+        {isQuickUnitOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 12 }}
+              transition={springTransition}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200"
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <h3 className="font-bold text-slate-800 text-base">
+                  إضافة وحدة جديدة في: <span className="text-indigo-600">{selectedBuilding}</span>
+                </h3>
+                <button
+                  onClick={() => setIsQuickUnitOpen(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
 
             <form onSubmit={handleSaveQuickUnit} className="p-6 space-y-4">
               {quickUnitError && (
@@ -789,22 +823,23 @@ export const ProjectsView: React.FC<Props> = ({
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition"
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition cursor-pointer"
                 >
                   إضافة الوحدة
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsQuickUnitOpen(false)}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition cursor-pointer"
                 >
                   إلغاء
                 </button>
               </div>
             </form>
-          </div>
+          </motion.div>
         </div>
       )}
+    </AnimatePresence>
     </div>
   );
 };

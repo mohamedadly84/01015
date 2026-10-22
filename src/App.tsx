@@ -39,6 +39,7 @@ import {
   Building2, LogOut, CheckCircle2, RefreshCw, KeyRound, Lock, User as UserIcon,
   Cloud, CloudOff, Globe, Grid, Sun, Moon
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function App() {
   const [db, setDb] = useState<AppDatabase>(getLocalDatabase());
@@ -81,18 +82,22 @@ export default function App() {
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
-      document.documentElement.classList.remove('light-mode');
-      document.documentElement.classList.add(isDarkMode ? 'dark-mode' : 'light-mode');
-      localStorage.setItem('hermes-theme', isDarkMode ? 'dark' : 'light');
-      // Apply body background override for light mode
+      const root = document.documentElement;
       const body = document.body;
       if (isDarkMode) {
+        root.classList.remove('light-mode');
+        root.classList.add('dark-mode');
         body.classList.remove('light-mode');
+        body.classList.add('dark-mode');
         body.style.backgroundImage = 'radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.08) 0px, transparent 50%)';
       } else {
+        root.classList.remove('dark-mode', 'dark');
+        root.classList.add('light-mode');
+        body.classList.remove('dark-mode', 'dark');
         body.classList.add('light-mode');
         body.style.backgroundImage = 'none';
       }
+      localStorage.setItem('hermes-theme', isDarkMode ? 'dark' : 'light');
     }
   }, [isDarkMode]);
 
@@ -108,6 +113,29 @@ export default function App() {
     }
     return false;
   });
+
+  // Handle browser back and forward button events seamlessly
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window === 'undefined') return;
+      const params = new URLSearchParams(window.location.search);
+      const unitParam = params.get('unit');
+      if (unitParam) {
+        const id = parseInt(unitParam, 10);
+        setPublicUnitId(isNaN(id) ? null : id);
+      } else {
+        setPublicUnitId(null);
+      }
+      setIsVisitorMode(
+        params.get('mode') === 'visitor' ||
+        params.get('catalog') === '1' ||
+        params.get('portal') === 'public'
+      );
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Login form state
   const [loginUsername, setLoginUsername] = useState('');
@@ -227,7 +255,6 @@ export default function App() {
   };
 
   // If accessed via QR Code scan (?unit=id), render the live public unit card directly without login screen!
-  // If accessed via QR Code scan (?unit=id), render the live public unit card directly without login screen!
   if (publicUnitId !== null) {
     return (
       <PublicUnitView
@@ -235,15 +262,24 @@ export default function App() {
         initialDb={db}
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        onBack={() => {
+          if (typeof window !== 'undefined' && window.history.length > 1) {
+            window.history.back();
+          } else {
+            window.history.pushState({}, '', '?mode=visitor');
+            setPublicUnitId(null);
+            setIsVisitorMode(true);
+          }
+        }}
         onGoToApp={() => {
           // Clear query param and navigate to main app
-          window.history.replaceState({}, '', window.location.pathname);
+          window.history.pushState({}, '', window.location.pathname);
           setPublicUnitId(null);
           setIsVisitorMode(false);
         }}
         onGoToCatalog={() => {
           // Switch to public visitor catalog
-          window.history.replaceState({}, '', '?mode=visitor');
+          window.history.pushState({}, '', '?mode=visitor');
           setPublicUnitId(null);
           setIsVisitorMode(true);
         }}
@@ -258,12 +294,20 @@ export default function App() {
         initialDb={db}
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+        onBack={() => {
+          if (typeof window !== 'undefined' && window.history.length > 1) {
+            window.history.back();
+          } else {
+            window.history.pushState({}, '', window.location.pathname);
+            setIsVisitorMode(false);
+          }
+        }}
         onGoToLogin={() => {
-          window.history.replaceState({}, '', window.location.pathname);
+          window.history.pushState({}, '', window.location.pathname);
           setIsVisitorMode(false);
         }}
         onSelectUnit={(id) => {
-          window.history.replaceState({}, '', `?unit=${id}`);
+          window.history.pushState({ unitId: id }, '', `?unit=${id}`);
           setPublicUnitId(id);
         }}
       />
@@ -347,7 +391,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => {
-                window.history.replaceState({}, '', '?mode=visitor');
+                window.history.pushState({}, '', '?mode=visitor');
                 setIsVisitorMode(true);
               }}
               className="w-full py-3 px-4 bg-gradient-to-r from-slate-900 to-indigo-950 hover:from-slate-800 hover:to-indigo-900 text-white font-bold rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 border border-indigo-500/30 shadow-md cursor-pointer"
@@ -391,25 +435,25 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen pb-12 font-['Cairo',sans-serif] transition-colors duration-200 ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#f8f6f2] text-slate-800'}`}>
-      {/* Top Navbar */}
-      <header className={`sticky top-0 z-40 backdrop-blur-xl border-b transition-colors duration-200 print:hidden ${
+    <div className={`min-h-screen pb-12 font-['Cairo',sans-serif] transition-colors duration-300 ${isDarkMode ? 'bg-[#070b14] text-slate-100' : 'bg-[#f8fafc] text-slate-900'}`}>
+      {/* Top Navbar - Apple Luxury Design */}
+      <header className={`sticky top-0 z-40 backdrop-blur-2xl border-b transition-colors duration-200 print:hidden ${
         isDarkMode 
-          ? 'glass-panel border-indigo-500/20 text-white shadow-2xl shadow-indigo-500/5' 
-          : 'bg-white/85 border-slate-200/80 text-slate-900 shadow-xs'
+          ? 'bg-[#090e1c]/85 border-slate-800/80 text-white shadow-2xl shadow-black/20' 
+          : 'bg-white/85 border-slate-200/90 text-slate-900 shadow-sm'
       }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-18">
           {/* Logo & Title */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-indigo-600/20">
-              <Building2 className="w-5 h-5" />
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/25">
+              <Building2 className="w-6 h-6" />
             </div>
             <div>
               <h1 className={`font-extrabold text-base sm:text-lg leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                 {db.settings.name || 'برنامج المحاسبة العقارية'}
               </h1>
-              <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                <span className={`flex items-center gap-1 font-semibold ${isCloudConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
+              <div className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+                <span className={`flex items-center gap-1 font-bold ${isCloudConnected ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
                   {isCloudConnected ? <Cloud className="w-3.5 h-3.5" /> : <CloudOff className="w-3.5 h-3.5" />}
                   <span>{syncNotice}</span>
                 </span>
@@ -417,10 +461,10 @@ export default function App() {
                 <button
                   onClick={handleManualSync}
                   disabled={isSyncing}
-                  className="hover:text-indigo-400 flex items-center gap-1 transition text-slate-400 cursor-pointer"
+                  className="hover:text-indigo-700 dark:hover:text-indigo-400 flex items-center gap-1 transition text-slate-600 dark:text-slate-400 cursor-pointer font-medium"
                   title="مزامنة فورية مع السحابة"
                 >
-                  <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin text-indigo-400' : ''}`} />
+                  <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin text-indigo-500' : ''}`} />
                   <span>تحديث</span>
                 </button>
               </div>
@@ -432,7 +476,7 @@ export default function App() {
             {/* Direct Visitor Portal Link / Preview */}
             <button
               onClick={() => {
-                window.history.replaceState({}, '', '?mode=visitor');
+                window.history.pushState({}, '', '?mode=visitor');
                 setIsVisitorMode(true);
               }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer shadow-xs ${
@@ -487,24 +531,31 @@ export default function App() {
           </div>
         </div>
 
-        {/* Tab navigation bar */}
+        {/* Tab navigation bar - Apple Dynamic Floating Pill */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 overflow-x-auto scrollbar-none border-t border-white/5">
-          <nav className="flex space-x-1 space-x-reverse py-1.5 min-w-max">
+          <nav className="flex space-x-1.5 space-x-reverse py-2 min-w-max">
             {visibleTabs.map(tab => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  className={`relative px-4 py-2 rounded-xl text-xs font-bold transition-colors duration-200 flex items-center gap-1.5 cursor-pointer select-none ${
                     isActive
-                      ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md shadow-indigo-600/30'
+                      ? 'text-white font-black'
                       : isDarkMode
                       ? 'text-slate-300 hover:text-white hover:bg-white/5'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                   }`}
                 >
-                  {tab.label}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeTabPill"
+                      className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-cyan-600 rounded-xl -z-10 shadow-lg shadow-indigo-600/30"
+                      transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    />
+                  )}
+                  <span className="relative z-10">{tab.label}</span>
                 </button>
               );
             })}
@@ -512,107 +563,117 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content Area */}
+      {/* Main Content Area - Apple Spring Page Transition */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
-        {activeTab === '🏠 الرئيسية' && perms.view_units && (
-          <DashboardView
-            db={db}
-            onNavigateTab={tab => setActiveTab(tab)}
-            onPayInstallmentQuick={instId => {
-              setQuickPayInstallmentId(instId);
-              setActiveTab('💵 التحصيل');
-            }}
-          />
-        )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 14, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -10, filter: "blur(2px)" }}
+            transition={{ type: "spring", stiffness: 360, damping: 28, mass: 0.8 }}
+          >
+            {activeTab === '🏠 الرئيسية' && perms.view_units && (
+              <DashboardView
+                db={db}
+                onNavigateTab={tab => setActiveTab(tab)}
+                onPayInstallmentQuick={instId => {
+                  setQuickPayInstallmentId(instId);
+                  setActiveTab('💵 التحصيل');
+                }}
+              />
+            )}
 
-        {activeTab === '🏗️ المشاريع' && perms.view_units && (
-          <ProjectsView
-            db={db}
-            canEdit={perms.edit_units}
-            onUpdateDb={handleUpdateDb}
-            onNavigateTab={(tab) => setActiveTab(tab)}
-          />
-        )}
+            {activeTab === '🏗️ المشاريع' && perms.view_units && (
+              <ProjectsView
+                db={db}
+                canEdit={perms.edit_units}
+                onUpdateDb={handleUpdateDb}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+              />
+            )}
 
-        {activeTab === '🏢 الوحدات' && perms.view_units && (
-          <UnitsView
-            db={db}
-            canEdit={perms.edit_units}
-            onUpdateDb={handleUpdateDb}
-            onOpenQr={unit => setSelectedQrUnit(unit)}
-          />
-        )}
+            {activeTab === '🏢 الوحدات' && perms.view_units && (
+              <UnitsView
+                db={db}
+                canEdit={perms.edit_units}
+                onUpdateDb={handleUpdateDb}
+                onOpenQr={unit => setSelectedQrUnit(unit)}
+              />
+            )}
 
-        {activeTab === '👥 العملاء' && perms.view_customers && (
-          <CustomersView
-            db={db}
-            canEdit={perms.edit_customers}
-            onUpdateDb={handleUpdateDb}
-            onViewContract={contractId => {
-              const contract = db.contracts.find(c => c.id === contractId);
-              if (contract) setSelectedContract(contract);
-            }}
-          />
-        )}
+            {activeTab === '👥 العملاء' && perms.view_customers && (
+              <CustomersView
+                db={db}
+                canEdit={perms.edit_customers}
+                onUpdateDb={handleUpdateDb}
+                onViewContract={contractId => {
+                  const contract = db.contracts.find(c => c.id === contractId);
+                  if (contract) setSelectedContract(contract);
+                }}
+              />
+            )}
 
-        {activeTab === '💰 البيع' && perms.view_sales && (
-          <SalesView
-            db={db}
-            canEdit={perms.edit_sales}
-            onUpdateDb={handleUpdateDb}
-            onOpenContractModal={contract => setSelectedContract(contract)}
-          />
-        )}
+            {activeTab === '💰 البيع' && perms.view_sales && (
+              <SalesView
+                db={db}
+                canEdit={perms.edit_sales}
+                onUpdateDb={handleUpdateDb}
+                onOpenContractModal={contract => setSelectedContract(contract)}
+              />
+            )}
 
-        {activeTab === '💵 التحصيل' && perms.view_collection && (
-          <CollectionView
-            db={db}
-            canEdit={perms.edit_collection}
-            onUpdateDb={handleUpdateDb}
-            onOpenReceiptModal={inst => setSelectedReceiptInstallment(inst)}
-            quickPayInstallmentId={quickPayInstallmentId}
-            onClearQuickPay={() => setQuickPayInstallmentId(null)}
-          />
-        )}
+            {activeTab === '💵 التحصيل' && perms.view_collection && (
+              <CollectionView
+                db={db}
+                canEdit={perms.edit_collection}
+                onUpdateDb={handleUpdateDb}
+                onOpenReceiptModal={inst => setSelectedReceiptInstallment(inst)}
+                quickPayInstallmentId={quickPayInstallmentId}
+                onClearQuickPay={() => setQuickPayInstallmentId(null)}
+              />
+            )}
 
-        {activeTab === '🏦 القروض' && perms.view_loans && (
-          <LoansView
-            db={db}
-            canEdit={perms.edit_loans}
-            onUpdateDb={handleUpdateDb}
-          />
-        )}
+            {activeTab === '🏦 القروض' && perms.view_loans && (
+              <LoansView
+                db={db}
+                canEdit={perms.edit_loans}
+                onUpdateDb={handleUpdateDb}
+              />
+            )}
 
-        {activeTab === '🧾 المصروفات' && perms.view_expenses && (
-          <ExpensesView
-            db={db}
-            canEdit={perms.edit_expenses}
-            onUpdateDb={handleUpdateDb}
-          />
-        )}
+            {activeTab === '🧾 المصروفات' && perms.view_expenses && (
+              <ExpensesView
+                db={db}
+                canEdit={perms.edit_expenses}
+                onUpdateDb={handleUpdateDb}
+              />
+            )}
 
-        {activeTab === '📊 التقارير' && perms.view_reports && (
-          <ReportsView
-            db={db}
-            onOpenSummaryReport={() => setIsSummaryReportOpen(true)}
-          />
-        )}
+            {activeTab === '📊 التقارير' && perms.view_reports && (
+              <ReportsView
+                db={db}
+                onOpenSummaryReport={() => setIsSummaryReportOpen(true)}
+              />
+            )}
 
-        {activeTab === '👤 المستخدمون' && perms.view_users && (
-          <UsersView
-            db={db}
-            currentUser={currentUser}
-            onUpdateDb={handleUpdateDb}
-          />
-        )}
+            {activeTab === '👤 المستخدمون' && perms.view_users && (
+              <UsersView
+                db={db}
+                currentUser={currentUser}
+                onUpdateDb={handleUpdateDb}
+              />
+            )}
 
-        {activeTab === '⚙️ الإعدادات' && perms.view_settings && (
-          <SettingsView
-            db={db}
-            onUpdateDb={handleUpdateDb}
-            onSyncServer={handleManualSync}
-          />
-        )}
+            {activeTab === '⚙️ الإعدادات' && perms.view_settings && (
+              <SettingsView
+                db={db}
+                onUpdateDb={handleUpdateDb}
+                onSyncServer={handleManualSync}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* QR Code Modal */}

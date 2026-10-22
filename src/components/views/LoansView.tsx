@@ -193,10 +193,10 @@ export const LoansView: React.FC<Props> = ({
           <div className="flex items-center gap-3">
             <span className="text-3xl p-2.5 rounded-2xl bg-amber-500/20 border border-amber-500/30">🏦</span>
             <div>
-              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-amber-200 to-yellow-300 bg-clip-text text-transparent">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:bg-gradient-to-r dark:from-white dark:via-amber-200 dark:to-yellow-300 dark:bg-clip-text dark:text-transparent">
                 إدارة القروض والتمويلات البنكية
               </h2>
-              <p className="text-slate-300 text-sm mt-1 font-medium">
+              <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 font-medium">
                 تسجيل القروض للأفراد والبنوك، جدولة السداد، ومتابعة الالتزامات والمديونيات
               </p>
             </div>
@@ -532,13 +532,13 @@ export const LoansView: React.FC<Props> = ({
         })}
       </div>
 
-      {/* Repayments Schedule Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-          <h3 className="font-bold text-slate-800 text-sm">
-            جدول استحقاق دفعات القروض{' '}
+      {/* Repayments Schedule Table - Apple Glassmorphism Design */}
+      <div className="glass-panel rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-2xl overflow-hidden">
+        <div className="p-5 border-b border-slate-200/80 dark:border-white/10 flex justify-between items-center bg-slate-100/70 dark:bg-slate-900/80">
+          <h3 className="font-black text-slate-800 dark:text-slate-100 text-sm">
+            جدول استحقاق دفعات القروض والتمويل{' '}
             {selectedLoanId !== 'all' && (
-              <span className="text-amber-700">
+              <span className="text-amber-600 dark:text-amber-400 font-bold">
                 (المحددة: {db.loans.find(l => l.id === selectedLoanId)?.lenderName})
               </span>
             )}
@@ -546,7 +546,7 @@ export const LoansView: React.FC<Props> = ({
           {selectedLoanId !== 'all' && (
             <button
               onClick={() => setSelectedLoanId('all')}
-              className="text-xs text-blue-600 hover:underline font-semibold"
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer"
             >
               عرض جميع الدفعات
             </button>
@@ -555,55 +555,66 @@ export const LoansView: React.FC<Props> = ({
 
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
-            <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 font-bold">
+            <thead className="bg-slate-100/50 dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 border-b border-slate-200/80 dark:border-white/10 font-black">
               <tr>
-                <th className="py-3 px-4">رقم الدفعة</th>
-                <th className="py-3 px-4">المقرض</th>
-                <th className="py-3 px-4">تاريخ الاستحقاق</th>
-                <th className="py-3 px-4">المبلغ المستحق</th>
-                <th className="py-3 px-4">المدفوع</th>
-                <th className="py-3 px-4">المتبقي</th>
-                <th className="py-3 px-4">الحالة</th>
-                {canEdit && <th className="py-3 px-4 text-center">سداد</th>}
+                <th className="py-4 px-5 font-black">رقم الدفعة</th>
+                <th className="py-4 px-5 font-bold">المقرض</th>
+                <th className="py-4 px-5 font-bold">تاريخ الاستحقاق</th>
+                <th className="py-4 px-5 font-bold">المبلغ المستحق</th>
+                <th className="py-4 px-5 font-bold">المدفوع</th>
+                <th className="py-4 px-5 font-bold">المتبقي</th>
+                <th className="py-4 px-5 font-bold">الحالة</th>
+                {canEdit && <th className="py-4 px-5 text-center font-bold">سداد</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredPayments.map(payment => {
-                const loan = db.loans.find(l => l.id === payment.loanId);
-                const remaining = payment.amount - payment.paidAmount;
+            <tbody className="divide-y divide-slate-200/40 dark:divide-white/5">
+              {filteredPayments.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-14 text-center text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Landmark className="w-8 h-8 opacity-40" />
+                      <p className="font-semibold text-sm">لا توجد دفعات قروض مسجلة</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredPayments.map(payment => {
+                  const loan = db.loans.find(l => l.id === payment.loanId);
+                  const remaining = payment.amount - payment.paidAmount;
 
-                return (
-                  <tr key={payment.id} className="hover:bg-slate-50">
-                    <td className="py-3 px-4 font-mono font-bold">#{payment.paymentNumber}</td>
-                    <td className="py-3 px-4 font-semibold text-slate-800">{loan?.lenderName}</td>
-                    <td className="py-3 px-4 font-mono text-xs">{payment.dueDate}</td>
-                    <td className="py-3 px-4 font-bold">{formatCurrency(payment.amount)}</td>
-                    <td className="py-3 px-4 text-emerald-700 font-medium">{formatCurrency(payment.paidAmount)}</td>
-                    <td className="py-3 px-4 font-bold text-red-600">{formatCurrency(remaining)}</td>
-                    <td className="py-3 px-4">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${
-                        payment.status === 'مدفوع' ? 'bg-emerald-100 text-emerald-800' :
-                        payment.status === 'مدفوع جزئيًا' ? 'bg-amber-100 text-amber-800' :
-                        'bg-slate-100 text-slate-700'
-                      }`}>
-                        {payment.status}
-                      </span>
-                    </td>
-                    {canEdit && (
-                      <td className="py-3 px-4 text-center">
-                        {payment.status !== 'مدفوع' && (
-                          <button
-                            onClick={() => handleOpenRepay(payment)}
-                            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition"
-                          >
-                            سداد
-                          </button>
-                        )}
+                  return (
+                    <tr key={payment.id} className="hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors duration-150">
+                      <td className="py-4 px-5 font-mono font-black text-slate-800 dark:text-slate-100">#{payment.paymentNumber}</td>
+                      <td className="py-4 px-5 font-bold text-slate-800 dark:text-slate-100">{loan?.lenderName}</td>
+                      <td className="py-4 px-5 font-mono text-xs text-slate-600 dark:text-slate-400">{payment.dueDate}</td>
+                      <td className="py-4 px-5 font-black text-slate-900 dark:text-white">{formatCurrency(payment.amount)}</td>
+                      <td className="py-4 px-5 text-emerald-700 dark:text-emerald-400 font-bold">{formatCurrency(payment.paidAmount)}</td>
+                      <td className="py-4 px-5 font-black text-red-600 dark:text-red-400">{formatCurrency(remaining)}</td>
+                      <td className="py-4 px-5">
+                        <span className={`text-xs font-bold py-1 px-2.5 rounded-xl border ${
+                          payment.status === 'مدفوع' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700/40' :
+                          payment.status === 'مدفوع جزئيًا' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700/40' :
+                          'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                        }`}>
+                          {payment.status}
+                        </span>
                       </td>
-                    )}
-                  </tr>
-                );
-              })}
+                      {canEdit && (
+                        <td className="py-4 px-5 text-center">
+                          {payment.status !== 'مدفوع' && (
+                            <button
+                              onClick={() => handleOpenRepay(payment)}
+                              className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+                            >
+                              سداد
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

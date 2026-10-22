@@ -130,10 +130,10 @@ export const CustomersView: React.FC<Props> = ({
           <div className="flex items-center gap-3">
             <span className="text-3xl p-2.5 rounded-2xl bg-indigo-500/20 border border-indigo-500/30">👥</span>
             <div>
-              <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-white via-indigo-200 to-cyan-300 bg-clip-text text-transparent">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:bg-gradient-to-r dark:from-white dark:via-indigo-200 dark:to-cyan-300 dark:bg-clip-text dark:text-transparent">
                 إدارة العملاء والمشترين
               </h2>
-              <p className="text-slate-300 text-sm mt-1 font-medium">
+              <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 font-medium">
                 سجل العملاء، أرقام الهواتف، الأرقام القومية، ومتابعة العقود المبرمة
               </p>
             </div>
@@ -278,11 +278,13 @@ export const CustomersView: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Customers List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Customers List - Apple Glassmorphism Design */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredCustomers.length === 0 ? (
-          <div className="col-span-full bg-white p-12 rounded-2xl border border-slate-200 text-center text-slate-400">
-            لا يوجد عملاء يطابقون معايير البحث
+          <div className="col-span-full glass-panel p-14 rounded-3xl border border-slate-200/80 dark:border-white/10 text-center shadow-xl space-y-3">
+            <Users className="w-10 h-10 opacity-30 mx-auto text-slate-400" />
+            <h4 className="text-base font-bold text-slate-800 dark:text-slate-100">لا يوجد عملاء مسجلون يطابقون معايير البحث</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400">يمكنك إضافة عميل جديد بالضغط على زر "إضافة عميل جديد" بالأعلى.</p>
           </div>
         ) : (
           filteredCustomers.map(customer => {
@@ -292,13 +294,13 @@ export const CustomersView: React.FC<Props> = ({
             return (
               <div
                 key={customer.id}
-                className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition flex flex-col justify-between"
+                className="glass-card rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xl p-6 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="font-bold text-slate-900 text-lg">{customer.name}</h3>
-                      <span className="text-xs text-slate-400 font-mono">ID: #{customer.id}</span>
+                      <h3 className="font-black text-slate-900 dark:text-white text-lg">{customer.name}</h3>
+                      <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">ID: #{customer.id}</span>
                     </div>
                     {canEdit && (
                       <div className="flex items-center gap-1">

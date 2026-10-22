@@ -1,13 +1,18 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark-mode, .dark-mode *));
+
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 font-['Cairo',sans-serif] antialiased selection:bg-indigo-500 selection:text-white;
+    @apply bg-slate-950 text-slate-100 font-['Cairo',sans-serif] font-medium antialiased selection:bg-indigo-500 selection:text-white;
     background-image: 
       radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
       radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.08) 0px, transparent 50%);
     background-attachment: fixed;
     min-height: 100vh;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -49,15 +54,18 @@
 }
 
 /* =========================================================================
-   DARK MODE CONTRAST & LEGIBILITY (Default & .dark-mode)
+   DARK MODE CONTRAST & LEGIBILITY (Scoped strictly to .dark-mode when not .light-mode)
    ========================================================================= */
-:root:not(.light-mode),
-.dark-mode {
+:root.dark-mode,
+html.dark-mode,
+body.dark-mode,
+:root:not(.light-mode):not([class*="light-mode"]) {
   color-scheme: dark;
 }
 
-:root:not(.light-mode) .bg-white:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure):not(.print-paper),
-.dark-mode .bg-white:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure):not(.print-paper) {
+html.dark-mode .bg-white:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure):not(.print-paper),
+body.dark-mode .bg-white:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure):not(.print-paper),
+:root:not(.light-mode) .bg-white:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure):not(.print-paper) {
   background: rgba(15, 23, 42, 0.85) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
   color: #f8fafc;
@@ -65,106 +73,183 @@
   -webkit-backdrop-filter: blur(14px);
 }
 
-:root:not(.light-mode) .bg-slate-50:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure),
-.dark-mode .bg-slate-50:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure) {
+html.dark-mode .bg-slate-50:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure),
+body.dark-mode .bg-slate-50:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure),
+:root:not(.light-mode) .bg-slate-50:not(.printable-document):not(#printable-contract):not(#printable-receipt):not(#qr-printable-brochure) {
   background: rgba(15, 23, 42, 0.85) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
   color: #e2e8f0;
 }
 
-:root:not(.light-mode) .bg-slate-100:not(.printable-document):not(#printable-contract):not(#printable-receipt),
-.dark-mode .bg-slate-100:not(.printable-document):not(#printable-contract):not(#printable-receipt) {
+html.dark-mode .bg-slate-100:not(.printable-document):not(#printable-contract):not(#printable-receipt),
+body.dark-mode .bg-slate-100:not(.printable-document):not(#printable-contract):not(#printable-receipt),
+:root:not(.light-mode) .bg-slate-100:not(.printable-document):not(#printable-contract):not(#printable-receipt) {
   background: rgba(30, 41, 59, 0.75) !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
   color: #e2e8f0;
 }
 
+html.dark-mode .border-slate-200,
+html.dark-mode .border-slate-100,
+body.dark-mode .border-slate-200,
+body.dark-mode .border-slate-100,
 :root:not(.light-mode) .border-slate-200,
-:root:not(.light-mode) .border-slate-100,
-.dark-mode .border-slate-200,
-.dark-mode .border-slate-100 {
+:root:not(.light-mode) .border-slate-100 {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
+html.dark-mode .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+html.dark-mode .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+body.dark-mode .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+body.dark-mode .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
 :root:not(.light-mode) .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
-:root:not(.light-mode) .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
-.dark-mode .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
-.dark-mode .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+:root:not(.light-mode) .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Dark mode typography contrast */
-:root:not(.light-mode) .text-slate-900,
-:root:not(.light-mode) .text-slate-800,
-.dark-mode .text-slate-900,
-.dark-mode .text-slate-800 {
-  color: #f8fafc !important;
+/* Headings in Dark Mode: Solid pure white for 100% legibility */
+html.dark-mode:not(.light-mode) h1,
+html.dark-mode:not(.light-mode) h2,
+html.dark-mode:not(.light-mode) h3,
+html.dark-mode:not(.light-mode) h4,
+html.dark-mode:not(.light-mode) h5,
+html.dark-mode:not(.light-mode) h6,
+body.dark-mode:not(.light-mode) h1,
+body.dark-mode:not(.light-mode) h2,
+body.dark-mode:not(.light-mode) h3,
+body.dark-mode:not(.light-mode) h4,
+body.dark-mode:not(.light-mode) h5,
+body.dark-mode:not(.light-mode) h6,
+html.dark-mode:not(.light-mode) [class*="bg-clip-text"],
+body.dark-mode:not(.light-mode) [class*="bg-clip-text"] {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-image: none !important;
 }
 
-:root:not(.light-mode) .text-slate-700,
-:root:not(.light-mode) .text-slate-600,
-.dark-mode .text-slate-700,
-.dark-mode .text-slate-600 {
+/* Slate Neutrals in Dark Mode (Never dark gray on dark background) */
+html.dark-mode:not(.light-mode) .text-slate-900,
+html.dark-mode:not(.light-mode) .text-slate-800,
+html.dark-mode:not(.light-mode) .text-slate-700,
+body.dark-mode:not(.light-mode) .text-slate-900,
+body.dark-mode:not(.light-mode) .text-slate-800,
+body.dark-mode:not(.light-mode) .text-slate-700 {
+  color: #ffffff !important;
+}
+
+html.dark-mode:not(.light-mode) .text-slate-600,
+html.dark-mode:not(.light-mode) .text-slate-500,
+body.dark-mode:not(.light-mode) .text-slate-600,
+body.dark-mode:not(.light-mode) .text-slate-500 {
   color: #e2e8f0 !important;
 }
 
-:root:not(.light-mode) .text-slate-500,
-.dark-mode .text-slate-500 {
-  color: #94a3b8 !important;
-}
-
-:root:not(.light-mode) .text-slate-400,
-.dark-mode .text-slate-400 {
-  color: #94a3b8 !important;
-}
-
-:root:not(.light-mode) .text-slate-300,
-.dark-mode .text-slate-300 {
+html.dark-mode:not(.light-mode) .text-slate-400,
+html.dark-mode:not(.light-mode) .text-slate-300,
+body.dark-mode:not(.light-mode) .text-slate-400,
+body.dark-mode:not(.light-mode) .text-slate-300 {
   color: #cbd5e1 !important;
 }
 
+/* Colored Status & Value Texts in Dark Mode (Bright, vivid, high contrast) */
+html.dark-mode:not(.light-mode) .text-emerald-700,
+html.dark-mode:not(.light-mode) .text-emerald-800,
+html.dark-mode:not(.light-mode) .text-emerald-600,
+body.dark-mode:not(.light-mode) .text-emerald-700,
+body.dark-mode:not(.light-mode) .text-emerald-800,
+body.dark-mode:not(.light-mode) .text-emerald-600 {
+  color: #34d399 !important; /* Bright Emerald */
+  font-weight: 700 !important;
+}
+
+html.dark-mode:not(.light-mode) .text-blue-700,
+html.dark-mode:not(.light-mode) .text-blue-800,
+html.dark-mode:not(.light-mode) .text-blue-600,
+body.dark-mode:not(.light-mode) .text-blue-700,
+body.dark-mode:not(.light-mode) .text-blue-800,
+body.dark-mode:not(.light-mode) .text-blue-600 {
+  color: #60a5fa !important; /* Bright Sky Blue */
+  font-weight: 700 !important;
+}
+
+html.dark-mode:not(.light-mode) .text-indigo-700,
+html.dark-mode:not(.light-mode) .text-indigo-800,
+html.dark-mode:not(.light-mode) .text-indigo-600,
+body.dark-mode:not(.light-mode) .text-indigo-700,
+body.dark-mode:not(.light-mode) .text-indigo-800,
+body.dark-mode:not(.light-mode) .text-indigo-600 {
+  color: #818cf8 !important; /* Bright Indigo */
+  font-weight: 700 !important;
+}
+
+html.dark-mode:not(.light-mode) .text-rose-700,
+html.dark-mode:not(.light-mode) .text-rose-800,
+html.dark-mode:not(.light-mode) .text-rose-600,
+html.dark-mode:not(.light-mode) .text-red-700,
+html.dark-mode:not(.light-mode) .text-red-800,
+html.dark-mode:not(.light-mode) .text-red-600,
+body.dark-mode:not(.light-mode) .text-rose-700,
+body.dark-mode:not(.light-mode) .text-rose-800,
+body.dark-mode:not(.light-mode) .text-rose-600,
+body.dark-mode:not(.light-mode) .text-red-700,
+body.dark-mode:not(.light-mode) .text-red-800,
+body.dark-mode:not(.light-mode) .text-red-600 {
+  color: #f87171 !important; /* Bright Coral Red */
+  font-weight: 700 !important;
+}
+
+html.dark-mode:not(.light-mode) .text-amber-700,
+html.dark-mode:not(.light-mode) .text-amber-800,
+html.dark-mode:not(.light-mode) .text-amber-600,
+body.dark-mode:not(.light-mode) .text-amber-700,
+body.dark-mode:not(.light-mode) .text-amber-800,
+body.dark-mode:not(.light-mode) .text-amber-600 {
+  color: #fbbf24 !important; /* Bright Gold Amber */
+  font-weight: 700 !important;
+}
+
+/* Form labels in Dark Mode */
+html.dark-mode:not(.light-mode) label,
+body.dark-mode:not(.light-mode) label {
+  color: #f1f5f9 !important;
+  font-weight: 700 !important;
+}
+
+/* Table cells in Dark Mode */
+html.dark-mode:not(.light-mode) table td,
+body.dark-mode:not(.light-mode) table td {
+  color: #f1f5f9 !important;
+}
+
 /* Dark mode inputs and selects */
-:root:not(.light-mode) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-:root:not(.light-mode) select,
-:root:not(.light-mode) textarea,
-.dark-mode input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-.dark-mode select,
-.dark-mode textarea {
-  background-color: rgba(15, 23, 42, 0.9) !important;
-  color: #f8fafc !important;
-  border-color: rgba(255, 255, 255, 0.18) !important;
+html.dark-mode:not(.light-mode) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html.dark-mode:not(.light-mode) select,
+html.dark-mode:not(.light-mode) textarea,
+body.dark-mode:not(.light-mode) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+body.dark-mode:not(.light-mode) select,
+body.dark-mode:not(.light-mode) textarea {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  font-weight: 600 !important;
 }
 
-:root:not(.light-mode) select option,
-.dark-mode select option {
+html.dark-mode:not(.light-mode) select option,
+body.dark-mode:not(.light-mode) select option {
   background-color: #0f172a !important;
-  color: #f8fafc !important;
+  color: #ffffff !important;
 }
 
-:root:not(.light-mode) input::placeholder,
-:root:not(.light-mode) textarea::placeholder,
-.dark-mode input::placeholder,
-.dark-mode textarea::placeholder {
-  color: #64748b !important;
+html.dark-mode:not(.light-mode) input::placeholder,
+html.dark-mode:not(.light-mode) textarea::placeholder,
+body.dark-mode:not(.light-mode) input::placeholder,
+body.dark-mode:not(.light-mode) textarea::placeholder {
+  color: #94a3b8 !important;
 }
 
-:root:not(.light-mode) tr:hover,
-.dark-mode tr:hover {
-  background-color: rgba(30, 41, 59, 0.5) !important;
-}
-
-/* Amber buttons in dark mode have dark text for extreme legibility */
-.dark-mode .bg-amber-400,
-.dark-mode .bg-amber-500,
-:root:not(.light-mode) .bg-amber-400,
-:root:not(.light-mode) .bg-amber-500 {
-  color: #0f172a !important;
-}
-.dark-mode .bg-amber-400 *,
-.dark-mode .bg-amber-500 *,
-:root:not(.light-mode) .bg-amber-400 *,
-:root:not(.light-mode) .bg-amber-500 * {
-  color: #0f172a !important;
+html.dark-mode:not(.light-mode) tr:hover,
+body.dark-mode:not(.light-mode) tr:hover {
+  background-color: rgba(30, 41, 59, 0.6) !important;
 }
 
 /* =========================================================================
@@ -198,13 +283,17 @@
 }
 
 /* Light mode dark elements adaptation */
-.light-mode .bg-slate-950:not(#master-plan-canvas):not(#master-plan-canvas *),
-.light-mode .bg-slate-900:not(#master-plan-canvas):not(#master-plan-canvas *),
-.light-mode .bg-\[\#070b14\]:not(#master-plan-canvas):not(#master-plan-canvas *),
-.light-mode .bg-\[\#090e1c\]:not(#master-plan-canvas):not(#master-plan-canvas *) {
+.light-mode .bg-slate-950,
+.light-mode .bg-slate-900,
+.light-mode .bg-\[\#070b14\],
+.light-mode .bg-\[\#090e1c\] {
   background-color: #ffffff !important;
   color: #0f172a !important;
   border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.light-mode #master-plan-canvas {
+  background-color: #f1f5f9 !important;
 }
 
 .light-mode .bg-slate-900\/90,
@@ -212,66 +301,209 @@
 .light-mode .bg-slate-900\/60,
 .light-mode .bg-slate-800,
 .light-mode .bg-slate-800\/80,
-.light-mode .bg-slate-800\/90 {
-  background-color: rgba(255, 255, 255, 0.95) !important;
+.light-mode .bg-slate-800\/90,
+.light-mode .bg-slate-950\/80,
+.light-mode .bg-slate-950\/70 {
+  background-color: rgba(255, 255, 255, 0.98) !important;
   color: #0f172a !important;
   border-color: rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Light mode text contrast fixes: prevent faded light gray text on white cards */
+/* =========================================================================
+   LIGHT MODE COMPREHENSIVE TYPOGRAPHY CONTRAST
+   ========================================================================= */
+
+/* Headings in Light Mode: Solid deep charcoal black-slate for 100% legibility */
+.light-mode h1,
+.light-mode h2,
+.light-mode h3,
+.light-mode h4,
+.light-mode h5,
+.light-mode h6,
+.light-mode [class*="bg-clip-text"] {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  background-image: none !important;
+  font-weight: 900 !important;
+}
+
+/* Ensure all elements with text-white outside of solid colored buttons/badges become crisp dark slate */
+.light-mode h1.text-white:not(button *),
+.light-mode h2.text-white:not(button *),
+.light-mode h3.text-white:not(button *),
+.light-mode h4.text-white:not(button *),
+.light-mode h5.text-white:not(button *),
+.light-mode h6.text-white:not(button *),
+.light-mode p.text-white:not(button *),
+.light-mode div.text-white:not(button):not(button *):not([class*="bg-indigo"]):not([class*="bg-emerald"]):not([class*="bg-blue"]):not([class*="bg-rose"]):not([class*="bg-red"]):not([class*="from-indigo"]):not([class*="from-emerald"]):not([class*="from-blue"]):not([class*="from-slate-900"]):not([class*="bg-gradient-"]),
+.light-mode span.text-white:not(button *):not([class*="bg-indigo"] *):not([class*="bg-emerald"] *):not([class*="bg-blue"] *):not([class*="bg-rose"] *):not([class*="bg-red"] *):not([class*="from-indigo"] *):not([class*="from-emerald"] *):not(.active-tab-pill *):not([class*="badgeBg"] *),
+.light-mode td.text-white,
+.light-mode th.text-white,
+.light-mode strong.text-white:not(button *),
+.light-mode b.text-white:not(button *),
+.light-mode a.text-white:not([class*="bg-"]):not([class*="from-"]):not(button *) {
+  color: #0f172a !important;
+}
+
+/* Light mode text contrast fixes: prevent faded light gray text anywhere */
+.light-mode .text-slate-500,
 .light-mode .text-slate-400,
-.light-mode .text-slate-500 {
-  color: #475569 !important;
+.light-mode .text-gray-400,
+.light-mode .text-gray-500,
+.light-mode .text-zinc-400,
+.light-mode .text-zinc-500,
+.light-mode .text-neutral-400,
+.light-mode .text-neutral-500 {
+  color: #334155 !important; /* Crisp dark slate gray (high contrast WCAG AAA) */
 }
 
-.light-mode .text-slate-300 {
-  color: #334155 !important;
-}
-
+.light-mode .text-slate-300,
 .light-mode .text-slate-200 {
-  color: #1e293b !important;
+  color: #1e293b !important; /* Deep dark slate */
 }
 
 .light-mode .text-slate-100 {
+  color: #0f172a !important; /* Deep charcoal black */
+}
+
+.light-mode .text-slate-600 {
+  color: #1e293b !important;
+}
+
+.light-mode .text-slate-700,
+.light-mode .text-slate-800,
+.light-mode .text-slate-900 {
   color: #0f172a !important;
 }
 
-/* Ensure headings with text-white outside of solid buttons become crisp dark slate */
-.light-mode h1.text-white,
-.light-mode h2.text-white,
-.light-mode h3.text-white,
-.light-mode h4.text-white,
-.light-mode p.text-white,
-.light-mode span.text-white:not(button *):not([class*="bg-indigo-600"] *):not([class*="bg-blue-600"] *):not([class*="bg-emerald-600"] *):not([class*="bg-red-600"] *):not([class*="bg-rose-600"] *) {
-  color: #0f172a !important;
+/* Colored Status & Value Texts in Light Mode (Deep, rich, high contrast) */
+.light-mode .text-emerald-400,
+.light-mode .text-emerald-300,
+.light-mode .text-emerald-500,
+.light-mode .text-green-400,
+.light-mode .text-green-300 {
+  color: #047857 !important; /* Deep Emerald */
+  font-weight: 700 !important;
 }
 
-/* Gradient heading texts: in light mode, switch from white gradients to high-contrast indigo/slate gradients */
-.light-mode h1[class*="bg-clip-text"],
-.light-mode h2[class*="bg-clip-text"],
-.light-mode h3[class*="bg-clip-text"],
-.light-mode span[class*="bg-clip-text"] {
-  background-image: linear-gradient(to right, #0f172a, #312e81, #1e3a8a) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  color: transparent !important;
+.light-mode .text-amber-400,
+.light-mode .text-amber-300,
+.light-mode .text-amber-500,
+.light-mode .text-yellow-400,
+.light-mode .text-yellow-500 {
+  color: #92400e !important; /* Deep Bronze Amber */
+  font-weight: 700 !important;
 }
 
-/* Light mode table headers and cells */
-.light-mode th {
-  background-color: #f1f5f9 !important;
+.light-mode .text-blue-400,
+.light-mode .text-blue-300,
+.light-mode .text-blue-500,
+.light-mode .text-sky-400,
+.light-mode .text-sky-300 {
+  color: #1d4ed8 !important; /* Deep Royal Blue */
+  font-weight: 700 !important;
+}
+
+.light-mode .text-cyan-400,
+.light-mode .text-cyan-300,
+.light-mode .text-cyan-500,
+.light-mode .text-teal-400,
+.light-mode .text-teal-300 {
+  color: #0e7490 !important; /* Deep Rich Cyan / Teal */
+  font-weight: 700 !important;
+}
+
+.light-mode .text-indigo-400,
+.light-mode .text-indigo-300,
+.light-mode .text-indigo-500,
+.light-mode .text-purple-400,
+.light-mode .text-purple-300 {
+  color: #3730a3 !important; /* Deep Indigo */
+  font-weight: 700 !important;
+}
+
+.light-mode .text-rose-400,
+.light-mode .text-rose-300,
+.light-mode .text-rose-500,
+.light-mode .text-red-400,
+.light-mode .text-red-300,
+.light-mode .text-red-500 {
+  color: #9f1239 !important; /* Deep Crimson */
+  font-weight: 700 !important;
+}
+
+/* Secondary descriptions, hints & labels in Light Mode */
+.light-mode label {
   color: #0f172a !important;
   font-weight: 700 !important;
+}
+
+/* Table styling in Light Mode */
+.light-mode table {
+  color: #0f172a !important;
+}
+
+.light-mode th,
+.light-mode table th,
+.light-mode thead tr th {
+  background-color: #f8fafc !important;
+  color: #1e293b !important;
+  font-weight: 800 !important;
   border-color: #e2e8f0 !important;
 }
 
-.light-mode td {
-  color: #1e293b !important;
+.light-mode td,
+.light-mode table td,
+.light-mode tbody tr td {
+  color: #0f172a !important;
+  font-weight: 600 !important;
   border-color: #f1f5f9 !important;
 }
 
-.light-mode tr:hover {
+.light-mode table tr:hover,
+.light-mode tbody tr:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* Borders and dividers in Light Mode */
+.light-mode .border-slate-800,
+.light-mode .border-slate-700,
+.light-mode [class*="border-slate-800"],
+.light-mode [class*="border-slate-700"] {
+  border-color: #e2e8f0 !important;
+}
+
+.light-mode .divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+.light-mode [class*="divide-slate-800"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
+}
+
+/* Dark secondary action buttons adaptation in Light Mode */
+.light-mode button[class*="bg-slate-800"],
+.light-mode button[class*="bg-slate-900"],
+.light-mode a[class*="bg-slate-800"],
+.light-mode a[class*="bg-slate-900"] {
   background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+
+.light-mode button[class*="bg-slate-800"] *,
+.light-mode button[class*="bg-slate-900"] *,
+.light-mode a[class*="bg-slate-800"] *,
+.light-mode a[class*="bg-slate-900"] * {
+  color: #0f172a !important;
+  stroke: #0f172a !important;
+}
+
+.light-mode button[class*="bg-slate-800"]:hover,
+.light-mode button[class*="bg-slate-900"]:hover,
+.light-mode a[class*="bg-slate-800"]:hover,
+.light-mode a[class*="bg-slate-900"]:hover {
+  background-color: #f1f5f9 !important;
+  color: #000000 !important;
+  border-color: #94a3b8 !important;
 }
 
 /* Light mode inputs, selects, textareas */
@@ -290,7 +522,7 @@
 
 .light-mode input::placeholder,
 .light-mode textarea::placeholder {
-  color: #94a3b8 !important;
+  color: #64748b !important;
 }
 
 /* Light mode status badges: high contrast colored text and soft colored backgrounds */
@@ -368,43 +600,345 @@
   border-color: #a5f3fc !important;
 }
 
-/* Solid action buttons keep crisp white text in light mode */
-.light-mode .bg-indigo-600,
-.light-mode .bg-indigo-700,
-.light-mode .bg-blue-600,
-.light-mode .bg-blue-700,
-.light-mode .bg-emerald-600,
-.light-mode .bg-emerald-700,
-.light-mode .bg-red-600,
-.light-mode .bg-red-700,
-.light-mode .bg-rose-600,
-.light-mode .bg-rose-700,
-.light-mode button.bg-indigo-600,
-.light-mode button.bg-blue-600,
-.light-mode button.bg-emerald-600 {
+/* =========================================================================
+   BUTTON CONTRAST & ACCESSIBILITY SYSTEM (LIGHT & DARK MODES)
+   ========================================================================= */
+
+/* 1. Solid Primary Action Buttons (Always White Text for Highest Contrast) */
+.bg-indigo-600,
+.bg-indigo-700,
+.bg-blue-600,
+.bg-blue-700,
+.bg-emerald-600,
+.bg-emerald-700,
+.bg-red-600,
+.bg-red-700,
+.bg-rose-600,
+.bg-rose-700,
+button.bg-indigo-600,
+button.bg-blue-600,
+button.bg-emerald-600,
+button.bg-red-600,
+button.bg-rose-600,
+a.bg-emerald-600,
+a.bg-indigo-600 {
   color: #ffffff !important;
+  font-weight: 700 !important;
 }
-.light-mode .bg-indigo-600 *,
-.light-mode .bg-indigo-700 *,
-.light-mode .bg-blue-600 *,
-.light-mode .bg-blue-700 *,
-.light-mode .bg-emerald-600 *,
-.light-mode .bg-emerald-700 *,
-.light-mode .bg-red-600 *,
-.light-mode .bg-red-700 *,
-.light-mode .bg-rose-600 *,
-.light-mode .bg-rose-700 * {
+.bg-indigo-600 *,
+.bg-indigo-700 *,
+.bg-blue-600 *,
+.bg-blue-700 *,
+.bg-emerald-600 *,
+.bg-emerald-700 *,
+.bg-red-600 *,
+.bg-red-700 *,
+.bg-rose-600 *,
+.bg-rose-700 *,
+button.bg-indigo-600 *,
+button.bg-blue-600 *,
+button.bg-emerald-600 *,
+button.bg-red-600 *,
+button.bg-rose-600 *,
+a.bg-emerald-600 *,
+a.bg-indigo-600 * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* 2. Amber & Yellow Buttons (Always Dark Slate Text for Extreme Legibility) */
+.bg-amber-400,
+.bg-amber-500,
+.bg-amber-600,
+button.bg-amber-400,
+button.bg-amber-500,
+button.bg-amber-600,
+.light-mode .bg-amber-400,
+.light-mode .bg-amber-500,
+.light-mode .bg-amber-600,
+.dark-mode .bg-amber-400,
+.dark-mode .bg-amber-500,
+.dark-mode .bg-amber-600,
+:root:not(.light-mode) .bg-amber-400,
+:root:not(.light-mode) .bg-amber-500,
+:root:not(.light-mode) .bg-amber-600 {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+.bg-amber-400 *,
+.bg-amber-500 *,
+.bg-amber-600 *,
+button.bg-amber-400 *,
+button.bg-amber-500 *,
+button.bg-amber-600 *,
+.light-mode .bg-amber-400 *,
+.light-mode .bg-amber-500 *,
+.light-mode .bg-amber-600 *,
+.dark-mode .bg-amber-400 *,
+.dark-mode .bg-amber-500 *,
+.dark-mode .bg-amber-600 *,
+:root:not(.light-mode) .bg-amber-400 *,
+:root:not(.light-mode) .bg-amber-500 *,
+:root:not(.light-mode) .bg-amber-600 * {
+  color: #0f172a !important;
+  stroke: #0f172a !important;
+}
+
+/* 3. Neutral & Secondary Buttons (.bg-slate-100, .bg-slate-200, .bg-slate-800, .bg-slate-900) */
+/* Light Mode Neutral Buttons */
+.light-mode button.bg-slate-100,
+.light-mode a.bg-slate-100,
+.light-mode button.bg-slate-200,
+.light-mode a.bg-slate-200 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  font-weight: 700 !important;
+}
+.light-mode button.bg-slate-100 *,
+.light-mode a.bg-slate-100 *,
+.light-mode button.bg-slate-200 *,
+.light-mode a.bg-slate-200 * {
+  color: #0f172a !important;
+  stroke: #0f172a !important;
+}
+.light-mode button.bg-slate-100:hover,
+.light-mode a.bg-slate-100:hover,
+.light-mode button.bg-slate-200:hover,
+.light-mode a.bg-slate-200:hover {
+  background-color: #e2e8f0 !important;
+  color: #000000 !important;
+}
+
+/* Dark Mode Neutral Buttons */
+:root:not(.light-mode) button.bg-slate-100,
+:root:not(.light-mode) a.bg-slate-100,
+:root:not(.light-mode) button.bg-slate-200,
+:root:not(.light-mode) a.bg-slate-200,
+.dark-mode button.bg-slate-100,
+.dark-mode a.bg-slate-100,
+.dark-mode button.bg-slate-200,
+.dark-mode a.bg-slate-200 {
+  background-color: rgba(30, 41, 59, 0.85) !important;
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  font-weight: 700 !important;
+}
+:root:not(.light-mode) button.bg-slate-100 *,
+:root:not(.light-mode) a.bg-slate-100 *,
+.dark-mode button.bg-slate-100 *,
+.dark-mode a.bg-slate-100 * {
+  color: #f8fafc !important;
+  stroke: #f8fafc !important;
+}
+:root:not(.light-mode) button.bg-slate-100:hover,
+:root:not(.light-mode) a.bg-slate-100:hover,
+.dark-mode button.bg-slate-100:hover,
+.dark-mode a.bg-slate-100:hover {
+  background-color: rgba(51, 65, 85, 0.95) !important;
   color: #ffffff !important;
 }
 
-/* Amber buttons have dark slate text for maximum legibility */
-.light-mode .bg-amber-400,
-.light-mode .bg-amber-500 {
-  color: #0f172a !important;
+/* Dark buttons in dark mode (.bg-slate-800, .bg-slate-900) */
+:root:not(.light-mode) button.bg-slate-800,
+:root:not(.light-mode) button.bg-slate-900,
+.dark-mode button.bg-slate-800,
+.dark-mode button.bg-slate-900 {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  color: #f8fafc !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  font-weight: 700 !important;
 }
-.light-mode .bg-amber-400 *,
-.light-mode .bg-amber-500 * {
-  color: #0f172a !important;
+:root:not(.light-mode) button.bg-slate-800 *,
+:root:not(.light-mode) button.bg-slate-900 *,
+.dark-mode button.bg-slate-800 *,
+.dark-mode button.bg-slate-900 * {
+  color: #f8fafc !important;
+  stroke: #f8fafc !important;
+}
+
+/* 4. Soft Tinted Action Buttons in Light Mode (.bg-blue-50, .bg-indigo-50, etc.) */
+.light-mode button.bg-blue-50,
+.light-mode a.bg-blue-50,
+.light-mode button.bg-blue-100,
+.light-mode a.bg-blue-100 {
+  background-color: #eff6ff !important;
+  color: #1e40af !important;
+  border-color: #bfdbfe !important;
+  font-weight: 700 !important;
+}
+.light-mode button.bg-blue-50 *,
+.light-mode a.bg-blue-50 * {
+  color: #1e40af !important;
+  stroke: #1e40af !important;
+}
+
+.light-mode button.bg-indigo-50,
+.light-mode a.bg-indigo-50,
+.light-mode button.bg-indigo-100,
+.light-mode a.bg-indigo-100 {
+  background-color: #eef2ff !important;
+  color: #3730a3 !important;
+  border-color: #c7d2fe !important;
+  font-weight: 700 !important;
+}
+.light-mode button.bg-indigo-50 *,
+.light-mode a.bg-indigo-50 * {
+  color: #3730a3 !important;
+  stroke: #3730a3 !important;
+}
+
+.light-mode button.bg-emerald-50,
+.light-mode a.bg-emerald-50,
+.light-mode button.bg-emerald-100,
+.light-mode a.bg-emerald-100 {
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
+  font-weight: 700 !important;
+}
+.light-mode button.bg-emerald-50 *,
+.light-mode a.bg-emerald-50 * {
+  color: #065f46 !important;
+  stroke: #065f46 !important;
+}
+
+.light-mode button.bg-amber-50,
+.light-mode a.bg-amber-50,
+.light-mode button.bg-amber-100,
+.light-mode a.bg-amber-100 {
+  background-color: #fffbeb !important;
+  color: #92400e !important;
+  border-color: #fde68a !important;
+  font-weight: 700 !important;
+}
+.light-mode button.bg-amber-50 *,
+.light-mode a.bg-amber-50 * {
+  color: #92400e !important;
+  stroke: #92400e !important;
+}
+
+.light-mode button.bg-red-50,
+.light-mode a.bg-red-50,
+.light-mode button.bg-rose-50,
+.light-mode a.bg-rose-50 {
+  background-color: #fff1f2 !important;
+  color: #9f1239 !important;
+  border-color: #fecdd3 !important;
+  font-weight: 700 !important;
+}
+.light-mode button.bg-red-50 *,
+.light-mode a.bg-red-50 *,
+.light-mode button.bg-rose-50 *,
+.light-mode a.bg-rose-50 * {
+  color: #9f1239 !important;
+  stroke: #9f1239 !important;
+}
+
+/* 5. Soft Tinted Action Buttons in Dark Mode */
+:root:not(.light-mode) button.bg-blue-50,
+:root:not(.light-mode) a.bg-blue-50,
+.dark-mode button.bg-blue-50,
+.dark-mode a.bg-blue-50 {
+  background-color: rgba(30, 58, 138, 0.45) !important;
+  color: #93c5fd !important;
+  border-color: rgba(96, 165, 250, 0.3) !important;
+  font-weight: 700 !important;
+}
+:root:not(.light-mode) button.bg-blue-50 *,
+:root:not(.light-mode) a.bg-blue-50 *,
+.dark-mode button.bg-blue-50 *,
+.dark-mode a.bg-blue-50 * {
+  color: #93c5fd !important;
+  stroke: #93c5fd !important;
+}
+
+:root:not(.light-mode) button.bg-indigo-50,
+:root:not(.light-mode) a.bg-indigo-50,
+.dark-mode button.bg-indigo-50,
+.dark-mode a.bg-indigo-50 {
+  background-color: rgba(49, 46, 129, 0.45) !important;
+  color: #a5b4fc !important;
+  border-color: rgba(129, 140, 248, 0.3) !important;
+  font-weight: 700 !important;
+}
+:root:not(.light-mode) button.bg-indigo-50 *,
+:root:not(.light-mode) a.bg-indigo-50 *,
+.dark-mode button.bg-indigo-50 *,
+.dark-mode a.bg-indigo-50 * {
+  color: #a5b4fc !important;
+  stroke: #a5b4fc !important;
+}
+
+:root:not(.light-mode) button.bg-emerald-50,
+:root:not(.light-mode) a.bg-emerald-50,
+.dark-mode button.bg-emerald-50,
+.dark-mode a.bg-emerald-50 {
+  background-color: rgba(6, 78, 59, 0.45) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(52, 211, 153, 0.3) !important;
+  font-weight: 700 !important;
+}
+:root:not(.light-mode) button.bg-emerald-50 *,
+:root:not(.light-mode) a.bg-emerald-50 *,
+.dark-mode button.bg-emerald-50 *,
+.dark-mode a.bg-emerald-50 * {
+  color: #6ee7b7 !important;
+  stroke: #6ee7b7 !important;
+}
+
+:root:not(.light-mode) button.bg-amber-50,
+:root:not(.light-mode) a.bg-amber-50,
+.dark-mode button.bg-amber-50,
+.dark-mode a.bg-amber-50 {
+  background-color: rgba(120, 53, 15, 0.45) !important;
+  color: #fcd34d !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+  font-weight: 700 !important;
+}
+:root:not(.light-mode) button.bg-amber-50 *,
+:root:not(.light-mode) a.bg-amber-50 *,
+.dark-mode button.bg-amber-50 *,
+.dark-mode a.bg-amber-50 * {
+  color: #fcd34d !important;
+  stroke: #fcd34d !important;
+}
+
+:root:not(.light-mode) button.bg-red-50,
+:root:not(.light-mode) a.bg-red-50,
+:root:not(.light-mode) button.bg-rose-50,
+:root:not(.light-mode) a.bg-rose-50,
+.dark-mode button.bg-red-50,
+.dark-mode a.bg-red-50,
+.dark-mode button.bg-rose-50,
+.dark-mode a.bg-rose-50 {
+  background-color: rgba(136, 19, 55, 0.45) !important;
+  color: #fda4af !important;
+  border-color: rgba(251, 113, 133, 0.3) !important;
+  font-weight: 700 !important;
+}
+:root:not(.light-mode) button.bg-red-50 *,
+:root:not(.light-mode) a.bg-red-50 *,
+.dark-mode button.bg-red-50 *,
+.dark-mode a.bg-red-50 * {
+  color: #fda4af !important;
+  stroke: #fda4af !important;
+}
+
+/* 6. Icon Action Buttons in Tables (Edit, Delete, Print) */
+button:has(svg.lucide-edit-2),
+button:has(svg.lucide-edit) {
+  color: #3b82f6 !important;
+}
+button:has(svg.lucide-trash-2),
+button:has(svg.lucide-trash) {
+  color: #ef4444 !important;
+}
+button:has(svg.lucide-printer) {
+  color: #0ea5e9 !important;
+}
+button:has(svg.lucide-qr-code) {
+  color: #6366f1 !important;
 }
 
 /* Master plan blueprint canvas maintains high-contrast architectural colors */

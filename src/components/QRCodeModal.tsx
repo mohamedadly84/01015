@@ -8,6 +8,7 @@ import {
   X, Download, Printer, ExternalLink, Copy, Check,
   Sparkles, FileText, Building2, Phone, MapPin, Loader2, Compass
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface Props {
   unit: Unit | null;
@@ -101,7 +102,13 @@ export const QRCodeModal: React.FC<Props> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150 my-6">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 12 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+        className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 my-6"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50 print:hidden">
           <div className="flex items-center gap-3">
@@ -321,14 +328,14 @@ export const QRCodeModal: React.FC<Props> = ({
             {/* Download QR Only */}
             <button
               onClick={handleDownloadQrImage}
-              className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition border border-slate-300 text-xs sm:text-sm"
+              className="flex items-center justify-center gap-2 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition border border-slate-300 text-xs sm:text-sm cursor-pointer"
             >
               <Download className="w-4 h-4 text-emerald-600" />
               <span>تحميل QR صورة فقط</span>
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
