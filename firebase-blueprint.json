@@ -49,6 +49,14 @@
           "type": "array",
           "description": "Application team user accounts"
         },
+        "sessions": {
+          "type": "array",
+          "description": "Active and historical user sessions with login time, heartbeat, and duration"
+        },
+        "activityLogs": {
+          "type": "array",
+          "description": "Comprehensive audit log of user operations and activities"
+        },
         "updatedAt": {
           "type": "string",
           "description": "ISO timestamp of last update"

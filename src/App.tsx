@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  AppDatabase, User, Unit, Contract, Installment
+  AppDatabase, User, Unit, Contract, Installment, ActivityActionType
 } from './types';
 import {
   getLocalDatabase, saveLocalDatabase, fetchServerDatabase,
@@ -13,6 +13,13 @@ import {
   loginWithGoogle,
   logoutFirebaseAuth
 } from './services/firebase';
+import {
+  startOrUpdateUserSession,
+  heartbeatUserSession,
+  endUserSession,
+  logActivity,
+  isSessionOnline
+} from './services/activityLogger';
 
 // Modals
 import { QRCodeModal } from './components/QRCodeModal';
@@ -171,11 +178,64 @@ export default function App() {
   }, []);
 
   // Update DB handler (saves locally & syncs with cloud Firestore immediately)
-  const handleUpdateDb = (updatedDb: AppDatabase) => {
-    setDb(updatedDb);
-    saveLocalDatabase(updatedDb);
+  const handleUpdateDb = (
+    updatedDb: AppDatabase,
+    activityMeta?: { actionType: ActivityActionType; actionLabel: string; details: string; targetTitle?: string }
+  ) => {
+    let finalDb = updatedDb;
+
+    // Record activity log if meta provided or auto-detect additions
+    if (activityMeta && currentUser) {
+      finalDb = logActivity(
+        updatedDb,
+        currentUser,
+        activityMeta.actionType,
+        activityMeta.actionLabel,
+        activityMeta.details,
+        activityMeta.targetTitle
+      );
+    } else if (currentUser && (!updatedDb.activityLogs || updatedDb.activityLogs === db.activityLogs)) {
+      if ((updatedDb.units?.length || 0) > (db.units?.length || 0)) {
+        const addedUnit = updatedDb.units[updatedDb.units.length - 1];
+        finalDb = logActivity(updatedDb, currentUser, 'unit_add', 'إضافة وحدة جديدة', `تم إضافة الوحدة رقم ${addedUnit?.unitNumber || ''} في ${addedUnit?.building || ''}`, `وحدة ${addedUnit?.unitNumber}`);
+      } else if ((updatedDb.units?.length || 0) < (db.units?.length || 0)) {
+        finalDb = logActivity(updatedDb, currentUser, 'unit_delete', 'حذف وحدة عقارية', `تم حذف وحدة عقارية من النظام`, 'حذف وحدة');
+      } else if ((updatedDb.contracts?.length || 0) > (db.contracts?.length || 0)) {
+        const addedContract = updatedDb.contracts[updatedDb.contracts.length - 1];
+        const unit = updatedDb.units.find(u => u.id === addedContract.unitId);
+        const customer = updatedDb.customers.find(c => c.id === addedContract.customerId);
+        finalDb = logActivity(updatedDb, currentUser, 'contract_add', 'تسجيل عقد بيع جديد', `تم تسجيل عقد بيع جديد للوحدة ${unit?.unitNumber || ''} للعميل ${customer?.name || ''} بقيمة ${addedContract.totalPrice.toLocaleString()} ج.م`, `عقد بيع وحدة ${unit?.unitNumber}`);
+      } else if ((updatedDb.contracts?.length || 0) < (db.contracts?.length || 0)) {
+        finalDb = logActivity(updatedDb, currentUser, 'contract_delete', 'إلغاء عقد بيع', `تم إلغاء/حذف عقد بيع من النظام وإعادة الوحدة للمبيعات`, 'إلغاء عقد');
+      } else if ((updatedDb.customers?.length || 0) > (db.customers?.length || 0)) {
+        const addedCust = updatedDb.customers[updatedDb.customers.length - 1];
+        finalDb = logActivity(updatedDb, currentUser, 'customer_add', 'إضافة عميل جديد', `تم إضافة العميل الجديد ${addedCust?.name || ''}`, addedCust?.name);
+      } else if ((updatedDb.customers?.length || 0) < (db.customers?.length || 0)) {
+        finalDb = logActivity(updatedDb, currentUser, 'customer_delete', 'حذف عميل', `تم حذف بيانات عميل من النظام`, 'حذف عميل');
+      } else if ((updatedDb.expenses?.length || 0) > (db.expenses?.length || 0)) {
+        const addedExp = updatedDb.expenses[updatedDb.expenses.length - 1];
+        finalDb = logActivity(updatedDb, currentUser, 'expense_add', 'تسجيل مصروف إنشائي', `تم تسجيل مصروف ${addedExp?.description || ''} بقيمة ${addedExp?.amount?.toLocaleString()} ج.م على ${addedExp?.building || 'العام'}`, addedExp?.description);
+      } else if ((updatedDb.expenses?.length || 0) < (db.expenses?.length || 0)) {
+        finalDb = logActivity(updatedDb, currentUser, 'expense_delete', 'حذف مصروف', `تم حذف قيد مصروف من النظام`, 'حذف مصروف');
+      } else if ((updatedDb.projects?.length || 0) > (db.projects?.length || 0)) {
+        const addedProj = updatedDb.projects![updatedDb.projects!.length - 1];
+        finalDb = logActivity(updatedDb, currentUser, 'project_add', 'إضافة مشروع / عمارة', `تم إضافة مشروع جديد باسم ${addedProj?.name || ''}`, addedProj?.name);
+      } else if (
+        Array.isArray(updatedDb.installments) &&
+        Array.isArray(db.installments) &&
+        updatedDb.installments.reduce((sum, i) => sum + i.paidAmount, 0) > db.installments.reduce((sum, i) => sum + i.paidAmount, 0)
+      ) {
+        const paidDiff = updatedDb.installments.reduce((sum, i) => sum + i.paidAmount, 0) - db.installments.reduce((sum, i) => sum + i.paidAmount, 0);
+        finalDb = logActivity(updatedDb, currentUser, 'installment_pay', 'تحصيل دفعة مالية / قسط', `تم تسجيل تحصيل مبلغ بقيمة ${paidDiff.toLocaleString()} ج.م في الخزينة وتحديث حالة القسط`, 'تحصيل قسط');
+      } else if (JSON.stringify(updatedDb.settings) !== JSON.stringify(db.settings)) {
+        finalDb = logActivity(updatedDb, currentUser, 'settings_update', 'تعديل إعدادات النظام', `تم تحديث بيانات الشركة وإعدادات النظام`, 'تحديث إعدادات');
+      }
+    }
+
+    setDb(finalDb);
+    saveLocalDatabase(finalDb);
     setIsSyncing(true);
-    syncServerDatabase(updatedDb).then(ok => {
+    syncServerDatabase(finalDb).then(ok => {
       setIsSyncing(false);
       if (ok) {
         setSyncNotice('تم الحفظ سحابياً فوراً');
@@ -183,6 +243,42 @@ export default function App() {
       }
     });
   };
+
+  // Heartbeat effect for live user presence (runs every 25 seconds)
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Send initial session heartbeat
+    const { updatedDb } = startOrUpdateUserSession(db, currentUser, activeTab);
+    setDb(updatedDb);
+    saveLocalDatabase(updatedDb);
+    syncServerDatabase(updatedDb).catch(() => {});
+
+    // Periodic heartbeat every 25s
+    const heartbeatTimer = setInterval(() => {
+      setDb(prevDb => {
+        const beatDb = heartbeatUserSession(prevDb, currentUser, activeTab);
+        saveLocalDatabase(beatDb);
+        syncServerDatabase(beatDb).catch(() => {});
+        return beatDb;
+      });
+    }, 25000);
+
+    const handleBeforeUnload = () => {
+      try {
+        const endingDb = endUserSession(db, currentUser);
+        saveLocalDatabase(endingDb);
+        syncServerDatabase(endingDb).catch(() => {});
+      } catch {}
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      clearInterval(heartbeatTimer);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [currentUser?.id, activeTab]);
 
   const handleManualSync = async () => {
     setIsSyncing(true);
@@ -216,6 +312,8 @@ export default function App() {
       if (isMatch) {
         setLoggedInUser(found);
         setCurrentUser(found);
+        const { updatedDb } = startOrUpdateUserSession(db, found, activeTab);
+        handleUpdateDb(updatedDb);
         return;
       }
     }
@@ -238,6 +336,8 @@ export default function App() {
         };
         setLoggedInUser(userObj);
         setCurrentUser(userObj);
+        const { updatedDb } = startOrUpdateUserSession(db, userObj, activeTab);
+        handleUpdateDb(updatedDb);
       }
     } catch (err: any) {
       if (err?.code !== 'auth/popup-closed-by-user') {
@@ -247,6 +347,10 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    if (currentUser) {
+      const updatedDb = endUserSession(db, currentUser);
+      handleUpdateDb(updatedDb);
+    }
     logoutFirebaseAuth().catch(() => {});
     setLoggedInUser(null);
     setCurrentUser(null);
@@ -434,6 +538,12 @@ export default function App() {
     sales: '🟢 مسؤول مبيعات',
   };
 
+  const onlineUsersCount = useMemo(() => {
+    const sessions = Array.isArray(db.sessions) ? db.sessions : [];
+    const online = sessions.filter(s => isSessionOnline(s));
+    return new Set(online.map(s => s.userId)).size;
+  }, [db.sessions]);
+
   return (
     <div className={`min-h-screen pb-12 font-['Cairo',sans-serif] transition-colors duration-300 ${isDarkMode ? 'bg-[#070b14] text-slate-100' : 'bg-[#f8fafc] text-slate-900'}`}>
       {/* Top Navbar - Apple Luxury Design */}
@@ -473,6 +583,19 @@ export default function App() {
 
           {/* User profile & Logout */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Live Online Users Badge for Admins */}
+            {role === 'admin' && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('👤 المستخدمون')}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 transition cursor-pointer"
+                title="عرض المستخدمين المتصلين الآن وسجل النشاط"
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>{onlineUsersCount} متصل الآن</span>
+              </button>
+            )}
+
             {/* Direct Visitor Portal Link / Preview */}
             <button
               onClick={() => {

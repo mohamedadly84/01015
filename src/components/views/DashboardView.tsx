@@ -3,9 +3,11 @@ import { AppDatabase } from '../../types';
 import { formatCurrency } from '../../utils/helpers';
 import {
   DollarSign, TrendingUp, Wallet, Landmark, FileText,
-  Clock, AlertTriangle, Building, CheckCircle2, ArrowUpRight
+  Clock, AlertTriangle, Building, CheckCircle2, ArrowUpRight,
+  Activity, Users, ShieldCheck
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { isSessionOnline, formatArabicDateTime } from '../../services/activityLogger';
 
 interface Props {
   db: AppDatabase;
@@ -465,6 +467,63 @@ export const DashboardView: React.FC<Props> = ({
                   })}
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* Team Presence & Live Operations Feed */}
+          <div className="glass-panel rounded-3xl p-6 border border-indigo-500/20">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-base">نشاط الفريق والمراقبة الحية</h3>
+                    {Array.isArray(db.sessions) && db.sessions.filter(s => isSessionOnline(s)).length > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>{db.sessions.filter(s => isSessionOnline(s)).length} متصل الآن</span>
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-slate-600 dark:text-slate-400">آخر ما قام به أعضاء الفريق بالجلسات</span>
+                </div>
+              </div>
+              <button
+                onClick={() => onNavigateTab('👤 المستخدمون')}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition cursor-pointer"
+              >
+                مركز المراقبة الكامل ←
+              </button>
+            </div>
+
+            {Array.isArray(db.activityLogs) && db.activityLogs.length > 0 ? (
+              <div className="space-y-2.5">
+                {db.activityLogs.slice(0, 4).map(log => (
+                  <div
+                    key={log.id}
+                    className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-bold text-slate-900 dark:text-white shrink-0">
+                        {log.fullName}
+                      </span>
+                      <span className="text-slate-400 dark:text-slate-500">•</span>
+                      <span className="text-slate-700 dark:text-slate-300 truncate font-medium">
+                        {log.details}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[11px] text-slate-500 shrink-0 whitespace-nowrap">
+                      {formatArabicDateTime(log.timestamp)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 py-3 text-center">
+                يتم تسجيل كل عملية (إضافة أو بيع أو تحصيل) فور تنفيذها بواسطة أي مستخدم.
+              </p>
             )}
           </div>
         </motion.div>

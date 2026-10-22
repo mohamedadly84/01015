@@ -122,6 +122,59 @@ export interface CompanySettings {
   masterPlanImage?: string; // صورة المخطط العام للمشروع ككل
 }
 
+export type ActivityActionType =
+  | 'login'
+  | 'logout'
+  | 'unit_add'
+  | 'unit_update'
+  | 'unit_delete'
+  | 'customer_add'
+  | 'customer_update'
+  | 'customer_delete'
+  | 'contract_add'
+  | 'contract_update'
+  | 'contract_delete'
+  | 'installment_pay'
+  | 'installment_update'
+  | 'expense_add'
+  | 'expense_delete'
+  | 'project_add'
+  | 'project_update'
+  | 'project_delete'
+  | 'loan_add'
+  | 'loan_pay'
+  | 'user_add'
+  | 'user_update'
+  | 'user_delete'
+  | 'settings_update';
+
+export interface ActivityLog {
+  id: string;
+  timestamp: string; // ISO date-time string
+  userId: number;
+  username: string;
+  fullName: string;
+  role: UserRole;
+  actionType: ActivityActionType;
+  actionLabel: string; // تسمية واضحة للعملية بالعربية
+  targetTitle?: string; // e.g. "وحدة 102 - عمارة النور"
+  details: string; // تفاصيل العملية الدقيقة
+}
+
+export interface UserSession {
+  id: string; // معرف الجلسة الفريد
+  userId: number;
+  username: string;
+  fullName: string;
+  role: UserRole;
+  loginTime: string; // وقت بدء الجلسة
+  lastActiveTime: string; // وقت آخر نبضة نشاط
+  logoutTime?: string; // وقت تسجيل الخروج
+  deviceInfo?: string; // نوع المتصفح والجهاز
+  activePage?: string; // الصفحة أو التبويب الحالي
+  isOnline?: boolean; // حالة الاتصال المباشرة
+}
+
 export interface AppDatabase {
   projects?: Project[];
   users: User[];
@@ -134,4 +187,6 @@ export interface AppDatabase {
   expenseCategories: ExpenseCategory[];
   expenses: Expense[];
   settings: CompanySettings;
+  sessions?: UserSession[]; // سجل جلسات المستخدمين والاتصال
+  activityLogs?: ActivityLog[]; // سجل العمليات والمراقبة الشامل
 }

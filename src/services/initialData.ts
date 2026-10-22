@@ -38,7 +38,9 @@ export const initialData: AppDatabase = {
     taxNumber: '',
     address: '',
     currency: 'ج.م'
-  }
+  },
+  sessions: [],
+  activityLogs: []
 };
 
 
