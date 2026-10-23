@@ -125,6 +125,15 @@ export const PERMISSIONS: Record<UserRole, {
     view_expenses: true, edit_expenses: true,
     view_reports: true, view_settings: true, view_users: true,
   },
+  manager: {
+    view_units: true, edit_units: true,
+    view_customers: true, edit_customers: true,
+    view_sales: true, edit_sales: true,
+    view_collection: true, edit_collection: true,
+    view_loans: true, edit_loans: true,
+    view_expenses: true, edit_expenses: true,
+    view_reports: true, view_settings: false, view_users: true,
+  },
   accountant: {
     view_units: true, edit_units: false,
     view_customers: true, edit_customers: false,

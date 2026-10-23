@@ -643,8 +643,20 @@ export default function App() {
 
   const visibleTabs = tabs.filter(t => t.visible);
 
+  // Auto redirect if activeTab is not permitted for the user's role
+  useEffect(() => {
+    if (currentUser) {
+      const userRole = currentUser.role || 'sales';
+      const userPerms = PERMISSIONS[userRole] || PERMISSIONS.sales;
+      if (activeTab === '⚙️ الإعدادات' && !userPerms.view_settings) {
+        setActiveTab('🏠 الرئيسية');
+      }
+    }
+  }, [currentUser?.role, activeTab]);
+
   const roleBadgeMap: Record<string, string> = {
-    admin: '🔴 مدير النظام',
+    admin: '🔴 مدير عام',
+    manager: '🔵 مدير (بدون إعدادات)',
     accountant: '🟡 محاسب مالي',
     sales: '🟢 مسؤول مبيعات',
   };

@@ -177,6 +177,7 @@ export const UsersView: React.FC<Props> = ({
 
   const roleLabels: Record<UserRole, { label: string; badge: string; dotColor: string }> = {
     admin: { label: 'مدير عام', badge: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800', dotColor: 'bg-red-500' },
+    manager: { label: 'مدير (بدون إعدادات)', badge: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800', dotColor: 'bg-blue-500' },
     accountant: { label: 'محاسب مالي', badge: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800', dotColor: 'bg-amber-500' },
     sales: { label: 'مسؤول مبيعات', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800', dotColor: 'bg-emerald-500' },
   };
@@ -1123,10 +1124,16 @@ export const UsersView: React.FC<Props> = ({
                     onChange={e => setRole(e.target.value as UserRole)}
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   >
-                    <option value="sales">🟢 مبيعات (Sales)</option>
-                    <option value="accountant">🟡 محاسب (Accountant)</option>
-                    <option value="admin">🔴 مدير عام (Admin)</option>
+                    <option value="sales">🟢 مسؤول مبيعات (Sales)</option>
+                    <option value="accountant">🟡 محاسب مالي (Accountant)</option>
+                    <option value="manager">🔵 مدير (اطلاع كامل على البرنامج بدون الإعدادات)</option>
+                    <option value="admin">🔴 مدير عام (Admin - كامل الصلاحيات)</option>
                   </select>
+                  {role === 'manager' && (
+                    <p className="text-[11px] text-blue-600 mt-1 font-semibold leading-relaxed">
+                      * يتيح الاطلاع والعمل على جميع أقسام البرنامج مع حجب صفحة الإعدادات تماماً.
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center pt-5">
                   <label className="flex items-center gap-2 cursor-pointer text-sm">
