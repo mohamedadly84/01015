@@ -22,6 +22,11 @@ export function apiPlugin(): Plugin {
       ensureDbFile();
 
       server.middlewares.use((req, res, next) => {
+        // Security headers
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+        res.setHeader('X-XSS-Protection', '1; mode=block');
+
         if (!req.url?.startsWith('/api/data')) {
           return next();
         }

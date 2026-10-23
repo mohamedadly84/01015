@@ -106,6 +106,56 @@ export function calculateSessionDuration(session: UserSession): { text: string; 
 }
 
 /**
+ * Calculates live session duration with seconds precision for real-time counters
+ */
+export function calculateLiveSessionDuration(session: UserSession, nowMs: number = Date.now()): {
+  digital: string;
+  text: string;
+  totalSeconds: number;
+} {
+  const start = new Date(session.loginTime).getTime();
+  const end = session.logoutTime ? new Date(session.logoutTime).getTime() : nowMs;
+
+  if (isNaN(start) || end < start) {
+    return { digital: '00:00:00', text: 'أقل من ثانية', totalSeconds: 0 };
+  }
+
+  const diffSec = Math.max(0, Math.floor((end - start) / 1000));
+  const hours = Math.floor(diffSec / 3600);
+  const minutes = Math.floor((diffSec % 3600) / 60);
+  const seconds = diffSec % 60;
+
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const digital = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+
+  const parts: string[] = [];
+  if (hours > 0) {
+    if (hours === 1) parts.push('ساعة');
+    else if (hours === 2) parts.push('ساعتان');
+    else if (hours >= 3 && hours <= 10) parts.push(`${hours} ساعات`);
+    else parts.push(`${hours} ساعة`);
+  }
+  if (minutes > 0) {
+    if (minutes === 1) parts.push('دقيقة');
+    else if (minutes === 2) parts.push('دقيقتان');
+    else if (minutes >= 3 && minutes <= 10) parts.push(`${minutes} دقائق`);
+    else parts.push(`${minutes} دقيقة`);
+  }
+  if (seconds > 0 || parts.length === 0) {
+    if (seconds === 1) parts.push('ثانية');
+    else if (seconds === 2) parts.push('ثانيتان');
+    else if (seconds >= 3 && seconds <= 10) parts.push(`${seconds} ثوانٍ`);
+    else parts.push(`${seconds} ثانية`);
+  }
+
+  return {
+    digital,
+    text: parts.join(' و '),
+    totalSeconds: diffSec
+  };
+}
+
+/**
  * Appends a new activity log entry to the database
  */
 export function logActivity(
@@ -292,4 +342,76 @@ export function formatArabicDateTime(isoString: string): string {
   if (isYesterday) return `أمس، ${timeStr}`;
 
   return `${date.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' })} - ${timeStr}`;
+}
+
+/**
+ * Terminates an active user session manually by admin
+ */
+export function terminateUserSession(
+  db: AppDatabase,
+  sessionId: string,
+  adminUser: User,
+  reason: string = 'إنهاء يدوي بواسطة الأدمن'
+): AppDatabase {
+  const now = new Date().toISOString();
+  const existingSessions = Array.isArray(db.sessions) ? [...db.sessions] : [];
+  const index = existingSessions.findIndex(s => s.id === sessionId);
+
+  if (index === -1) return db;
+
+  const targetSession = existingSessions[index];
+  existingSessions[index] = {
+    ...targetSession,
+    logoutTime: now,
+    lastActiveTime: now,
+    isOnline: false,
+    terminatedReason: reason,
+    terminatedBy: adminUser.fullName || adminUser.username
+  };
+
+  return logActivity(
+    { ...db, sessions: existingSessions },
+    adminUser,
+    'session_terminate',
+    'إنهاء جلسة مستخدم يدوياً',
+    `قام مسؤول النظام (${adminUser.fullName || adminUser.username}) بإنهاء جلسة المستخدم ${targetSession.fullName} (${targetSession.username}) يدوياً.`,
+    `إنهاء جلسة @${targetSession.username}`
+  );
+}
+
+/**
+ * Handles automatic logout due to inactivity timeout
+ */
+export function recordInactivityAutoLogout(
+  db: AppDatabase,
+  user: User,
+  timeoutMinutes: number
+): AppDatabase {
+  const sessionId = getCurrentSessionId();
+  const now = new Date().toISOString();
+  const existingSessions = Array.isArray(db.sessions) ? [...db.sessions] : [];
+  const sessionIndex = existingSessions.findIndex(s => s.id === sessionId);
+
+  if (sessionIndex >= 0) {
+    existingSessions[sessionIndex] = {
+      ...existingSessions[sessionIndex],
+      logoutTime: now,
+      lastActiveTime: now,
+      isOnline: false,
+      terminatedReason: `خروج تلقائي لعدم النشاط (${timeoutMinutes} دقيقة)`
+    };
+  }
+
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  }
+
+  return logActivity(
+    { ...db, sessions: existingSessions },
+    user,
+    'logout',
+    'خروج تلقائي (عدم نشاط)',
+    `قام النظام بإنهاء جلسة المستخدم ${user.fullName || user.username} تلقائياً بعد فترة خمول وعدم تفاعل لمدة ${timeoutMinutes} دقيقة لحماية البيانات`,
+    'خروج تلقائي لعدم النشاط'
+  );
 }

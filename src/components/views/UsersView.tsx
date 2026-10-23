@@ -1,16 +1,20 @@
-import React, { useState, useMemo } from 'react';
-import { AppDatabase, User, UserRole, ActivityActionType } from '../../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { AppDatabase, User, UserRole, ActivityActionType, UserSession } from '../../types';
 import { setCurrentUser } from '../../services/storage';
 import {
   isSessionOnline,
   calculateSessionDuration,
+  calculateLiveSessionDuration,
+  terminateUserSession,
   formatArabicDateTime,
+  getCurrentSessionId,
   logActivity
 } from '../../services/activityLogger';
 import {
   Shield, Plus, Edit2, Trash2, CheckCircle, XCircle, AlertCircle,
   Users, Activity, Clock, Laptop, Search, Filter, RefreshCw,
-  LogIn, LogOut, CheckCircle2, Eye, FileText, ChevronDown, Download
+  LogIn, LogOut, CheckCircle2, Eye, FileText, ChevronDown, Download,
+  PowerOff, Timer, UserX, MonitorDot, AlertTriangle, Radio
 } from 'lucide-react';
 
 interface Props {
@@ -27,6 +31,16 @@ export const UsersView: React.FC<Props> = ({
   initialSubtab = 'accounts'
 }) => {
   const [activeSubtab, setActiveSubtab] = useState<'accounts' | 'online' | 'sessions' | 'audit'>(initialSubtab);
+  const [nowMs, setNowMs] = useState(Date.now());
+  const [terminatingSessionId, setTerminatingSessionId] = useState<string | null>(null);
+
+  // Live timer tick every 1 second for real-time duration updates
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Accounts Form State
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -165,6 +179,43 @@ export const UsersView: React.FC<Props> = ({
     admin: { label: 'مدير عام', badge: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800', dotColor: 'bg-red-500' },
     accountant: { label: 'محاسب مالي', badge: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800', dotColor: 'bg-amber-500' },
     sales: { label: 'مسؤول مبيعات', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800', dotColor: 'bg-emerald-500' },
+  };
+
+  const handleTerminateSession = (session: UserSession) => {
+    const isMe = session.id === getCurrentSessionId() || (currentUser.username === session.username && currentUser.id === session.userId);
+    const confirmMessage = isMe
+      ? 'هل أنت متأكد من إنهاء جلستك الحالية؟ سيتم تسجيل خروجك من النظام فوراً.'
+      : `هل أنت متأكد من إنهاء جلسة المستخدم "${session.fullName}" (@${session.username}) يدوياً؟ سيتم إنهاء اتصاله وتسجيل خروجه فوراً.`;
+
+    if (window.confirm(confirmMessage)) {
+      setTerminatingSessionId(session.id);
+      const updatedDb = terminateUserSession(db, session.id, currentUser, 'إنهاء يدوي بواسطة مسؤول النظام');
+      onUpdateDb(updatedDb, {
+        actionType: 'session_terminate',
+        actionLabel: 'إنهاء جلسة مستخدم يدوياً',
+        details: `قام الأدمن ${currentUser.fullName || currentUser.username} بإنهاء جلسة ${session.fullName} (@${session.username}) يدوياً`,
+        targetTitle: `@${session.username}`
+      });
+      setTimeout(() => setTerminatingSessionId(null), 600);
+    }
+  };
+
+  const currentInactivityMinutes = db.settings?.inactivityTimeoutMinutes ?? 15;
+
+  const handleUpdateInactivityTimeout = (minutes: number) => {
+    const updatedSettings = {
+      ...db.settings,
+      inactivityTimeoutMinutes: minutes
+    };
+    const updatedDb = logActivity(
+      { ...db, settings: updatedSettings },
+      currentUser,
+      'settings_update',
+      'تعديل مهلة الخروج التلقائي',
+      `تم ضبط مهلة الخروج التلقائي عند عدم النشاط إلى ${minutes > 0 ? `${minutes} دقيقة` : 'معطل (إلغاء الخروج التلقائي)'}`,
+      'أمان الجلسات'
+    );
+    onUpdateDb(updatedDb);
   };
 
   // Sessions data calculation
@@ -459,125 +510,257 @@ export const UsersView: React.FC<Props> = ({
       )}
 
       {/* ============================================================ */}
-      {/* 2. SUBTAB: WHO IS CONNECTED RIGHT NOW (ONLINE PRESENCE)      */}
+      {/* 2. SUBTAB: ACTIVE SESSIONS DATA TABLE (الجلسات النشطة لحظياً)   */}
       {/* ============================================================ */}
       {activeSubtab === 'online' && (
         <div className="space-y-6">
-          {/* Presence Summary Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-5 rounded-3xl glass-panel border border-emerald-500/30 shadow-xl">
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">
-                الجلسات المتصلة حالياً
-              </span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                  {onlineSessions.length}
+          {/* Top Presence & Inactivity Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-5 rounded-3xl glass-panel border border-emerald-500/30 shadow-xl flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                  الجلسات النشطة المتصلة الآن
                 </span>
-                <span className="text-xs text-slate-500">جلسة نشطة</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                    {onlineSessions.length}
+                  </span>
+                  <span className="text-xs text-slate-500">جلسة مباشرة</span>
+                </div>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <Radio className="w-6 h-6 animate-pulse" />
               </div>
             </div>
 
-            <div className="p-5 rounded-3xl glass-panel border border-indigo-500/30 shadow-xl">
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">
-                المستخدمون المتصلون
-              </span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400 font-mono">
-                  {onlineUsersCount}
+            <div className="p-5 rounded-3xl glass-panel border border-indigo-500/30 shadow-xl flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                  المستخدمون المتصلون فريدون
                 </span>
-                <span className="text-xs text-slate-500">مستخدم فريد</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400 font-mono">
+                    {onlineUsersCount}
+                  </span>
+                  <span className="text-xs text-slate-500">مستخدم نشط</span>
+                </div>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                <Users className="w-6 h-6" />
               </div>
             </div>
 
-            <div className="p-5 rounded-3xl glass-panel border border-amber-500/30 shadow-xl">
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">
-                آلية رصد الاتصال
-              </span>
-              <span className="text-xs font-bold text-amber-700 dark:text-amber-400 block">
-                مزامنة حية ونبضات نشاط كل 30 ثانية
-              </span>
+            <div className="p-5 rounded-3xl glass-panel border border-amber-500/30 shadow-xl flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                  الخروج التلقائي عند عدم النشاط
+                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">
+                    {currentInactivityMinutes > 0 ? `${currentInactivityMinutes} دقيقة` : 'معطل'}
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                  خروج آلي إذا تُرك البرنامج دون عمل
+                </span>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <Timer className="w-6 h-6" />
+              </div>
             </div>
           </div>
 
-          {/* Online Users Cards Grid */}
-          {onlineSessions.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {onlineSessions.map(session => {
-                const duration = calculateSessionDuration(session);
-                const roleInfo = roleLabels[session.role] || roleLabels.sales;
-
-                return (
-                  <div
-                    key={session.id}
-                    className="p-5 rounded-3xl glass-panel border border-emerald-500/30 shadow-xl relative overflow-hidden space-y-4 hover:border-emerald-500/60 transition"
-                  >
-                    {/* Top User Status Header */}
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-lg font-black text-emerald-600 dark:text-emerald-400 relative">
-                          {session.fullName.charAt(0) || session.username.charAt(0)}
-                          <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 absolute -bottom-0.5 -right-0.5 animate-pulse"></span>
-                        </div>
-                        <div>
-                          <h4 className="font-black text-base text-slate-900 dark:text-white">
-                            {session.fullName}
-                          </h4>
-                          <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
-                            @{session.username}
-                          </span>
-                        </div>
-                      </div>
-
-                      <span className={`px-2.5 py-1 rounded-xl text-xs font-bold border ${roleInfo.badge}`}>
-                        {roleInfo.label}
-                      </span>
-                    </div>
-
-                    {/* Live Connection Details Box */}
-                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 dark:text-slate-400 font-bold">وقت بدء الجلسة:</span>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">
-                          {formatArabicDateTime(session.loginTime)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 dark:text-slate-400 font-bold">مدة الجلسة الآن:</span>
-                        <span className="font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800/40">
-                          ⏱️ {duration.text}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500 dark:text-slate-400 font-bold">الصفحة الحالية:</span>
-                        <span className="font-bold text-indigo-700 dark:text-indigo-400">
-                          {session.activePage || 'الرئيسية'}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-800/60 text-[11px]">
-                        <span className="text-slate-500 dark:text-slate-400">الجهاز:</span>
-                        <span className="text-slate-700 dark:text-slate-300 font-medium truncate max-w-[170px]" title={session.deviceInfo}>
-                          {session.deviceInfo || 'متصفح ويب'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="p-12 text-center rounded-3xl glass-panel border border-slate-200/80 dark:border-white/10 space-y-3">
-              <span className="text-4xl block">💤</span>
-              <h4 className="text-lg font-bold text-slate-800 dark:text-slate-200">
-                لا توجد جلسات أخرى متصلة حالياً
-              </h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                أنت المستخدم الوحيد المسجل والمتصل بالنظام في هذه اللحظة. ستظهر هنا الجلسات النشطة فور تسجيل دخول أي مستخدم آخر.
+          {/* Inactivity Timeout Config Card */}
+          <div className="p-5 sm:p-6 rounded-3xl glass-panel border border-slate-200/80 dark:border-white/10 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Timer className="w-5 h-5 text-amber-500" />
+                <h4 className="font-black text-slate-900 dark:text-white text-base">
+                  إعداد مهلة قفل البرنامج والخروج التلقائي (Inactivity Auto-Logout)
+                </h4>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                يقوم البرنامج بإنهاء الجلسة وتسجيل الخروج تلقائياً عند عدم لمس الماوس أو لوحة المفاتيح للمدة المحددة، لحماية الحسابات في حال نسيان الشاشة مفتوحة.
               </p>
             </div>
-          )}
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[
+                { label: '5 دقائق', value: 5 },
+                { label: '10 دقائق', value: 10 },
+                { label: '15 دقيقة (موصى به)', value: 15 },
+                { label: '30 دقيقة', value: 30 },
+                { label: '60 دقيقة', value: 60 },
+                { label: 'تعطيل', value: 0 },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => handleUpdateInactivityTimeout(opt.value)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                    currentInactivityMinutes === opt.value
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-600/30'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Dedicated Active Sessions Data Table */}
+          <div className="glass-panel rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-2xl overflow-hidden">
+            <div className="p-5 border-b border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/40">
+              <div className="flex items-center gap-3">
+                <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                <div>
+                  <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>جدول بيانات الجلسات النشطة حالياً</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                      {onlineSessions.length} جلسة
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    مدة الجلسات تُحدث لحظياً كل ثانية في الوقت الفعلي مع إمكانية إنهاء أي جلسة يدوياً فوراً
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-xl">
+                  ● تحديث لحظي مباشر
+                </span>
+              </div>
+            </div>
+
+            {onlineSessions.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-sm">
+                  <thead className="bg-slate-100/70 dark:bg-slate-900/80 text-slate-800 dark:text-slate-100 border-b border-slate-200/80 dark:border-white/10 font-black">
+                    <tr>
+                      <th className="py-4 px-5 font-black">اسم المستخدم</th>
+                      <th className="py-4 px-5 font-bold">الدور / الصلاحية</th>
+                      <th className="py-4 px-5 font-bold">وقت تسجيل الدخول</th>
+                      <th className="py-4 px-5 font-bold">مدة الجلسة (محدثة لحظياً)</th>
+                      <th className="py-4 px-5 font-bold">الصفحة الحالية</th>
+                      <th className="py-4 px-5 font-bold">الجهاز والمتصفح</th>
+                      <th className="py-4 px-5 text-center font-bold">إجراء إنهاء الجلسة</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200/40 dark:divide-white/5">
+                    {onlineSessions.map(session => {
+                      const liveDuration = calculateLiveSessionDuration(session, nowMs);
+                      const roleInfo = roleLabels[session.role] || roleLabels.sales;
+                      const isMySession = session.id === getCurrentSessionId() || (currentUser.username === session.username && currentUser.id === session.userId);
+                      const isTerminating = terminatingSessionId === session.id;
+
+                      return (
+                        <tr
+                          key={session.id}
+                          className={`hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors duration-150 ${
+                            isMySession ? 'bg-indigo-500/5' : ''
+                          }`}
+                        >
+                          {/* User Column */}
+                          <td className="py-4 px-5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-sm font-black text-emerald-600 dark:text-emerald-400 relative shrink-0">
+                                {session.fullName.charAt(0) || session.username.charAt(0)}
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 absolute -bottom-0.5 -right-0.5 animate-pulse"></span>
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-black text-slate-900 dark:text-white">
+                                    {session.fullName}
+                                  </span>
+                                  {isMySession && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                                      جلستك الحالية
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-xs font-mono text-slate-500 dark:text-slate-400 block">
+                                  @{session.username}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Role Column */}
+                          <td className="py-4 px-5">
+                            <span className={`inline-block px-2.5 py-1 rounded-xl text-xs font-bold border ${roleInfo.badge}`}>
+                              {roleInfo.label}
+                            </span>
+                          </td>
+
+                          {/* Login Time Column */}
+                          <td className="py-4 px-5 font-mono text-xs text-slate-800 dark:text-slate-200">
+                            <div className="flex items-center gap-1.5">
+                              <LogIn className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              <span>{formatArabicDateTime(session.loginTime)}</span>
+                            </div>
+                          </td>
+
+                          {/* Real-time Live Duration Column */}
+                          <td className="py-4 px-5">
+                            <div className="space-y-0.5">
+                              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/60 shadow-sm">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                                <span className="font-mono font-black text-sm text-emerald-700 dark:text-emerald-300 tracking-wider">
+                                  {liveDuration.digital}
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-slate-500 dark:text-slate-400 block font-medium">
+                                {liveDuration.text}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Current Active Page Column */}
+                          <td className="py-4 px-5">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">
+                              <MonitorDot className="w-3.5 h-3.5" />
+                              <span>{session.activePage || 'الرئيسية'}</span>
+                            </span>
+                          </td>
+
+                          {/* Device / Browser Column */}
+                          <td className="py-4 px-5 text-xs text-slate-600 dark:text-slate-400 max-w-[180px] truncate" title={session.deviceInfo}>
+                            {session.deviceInfo || 'متصفح ويب'}
+                          </td>
+
+                          {/* Terminate Session Button */}
+                          <td className="py-4 px-5 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleTerminateSession(session)}
+                              disabled={isTerminating}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer bg-red-50 hover:bg-red-600 text-red-700 hover:text-white border border-red-200 hover:border-red-600 dark:bg-red-950/40 dark:hover:bg-red-600 dark:text-red-400 dark:hover:text-white dark:border-red-800 shadow-sm disabled:opacity-50"
+                              title="إنهاء هذه الجلسة فوراً وتسجيل خروج المستخدم"
+                            >
+                              <PowerOff className="w-3.5 h-3.5" />
+                              <span>{isTerminating ? 'جارٍ الإنهاء...' : 'إنهاء الجلسة يدوياً'}</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-12 text-center space-y-3">
+                <span className="text-4xl block">💤</span>
+                <h4 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+                  لا توجد جلسات أخرى متصلة حالياً
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                  تظهر في هذا الجدول كافة الجلسات النشطة لحظياً مع مدتها المستمرة بالثواني، ويمكنك إنهاء أي جلسة بنقرة زر.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -650,13 +833,16 @@ export const UsersView: React.FC<Props> = ({
                     <th className="py-4 px-5 font-bold">وقت الجلسة (المدة)</th>
                     <th className="py-4 px-5 font-bold">الجهاز والمتصفح</th>
                     <th className="py-4 px-5 font-bold">الحالة</th>
+                    <th className="py-4 px-5 text-center font-bold">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200/40 dark:divide-white/5">
                   {filteredSessions.map(session => {
                     const isOnline = isSessionOnline(session);
+                    const liveDuration = isOnline ? calculateLiveSessionDuration(session, nowMs) : null;
                     const duration = calculateSessionDuration(session);
                     const roleInfo = roleLabels[session.role] || roleLabels.sales;
+                    const isTerminating = terminatingSessionId === session.id;
 
                     return (
                       <tr key={session.id} className="hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors duration-150">
@@ -684,15 +870,23 @@ export const UsersView: React.FC<Props> = ({
                             : isOnline
                             ? <span className="text-emerald-600 dark:text-emerald-400 font-bold">نشط حالياً</span>
                             : formatArabicDateTime(session.lastActiveTime)}
+                          {session.terminatedReason && (
+                            <span className="block text-[11px] text-amber-600 dark:text-amber-400 font-sans mt-0.5">
+                              ({session.terminatedReason})
+                            </span>
+                          )}
                         </td>
                         <td className="py-4 px-5">
-                          <span className={`font-black text-xs px-2.5 py-1 rounded-xl border ${
-                            isOnline
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
-                              : 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-                          }`}>
-                            ⏱️ {duration.text}
-                          </span>
+                          {isOnline && liveDuration ? (
+                            <span className="font-black text-xs px-2.5 py-1 rounded-xl border bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 flex items-center gap-1.5 w-fit">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                              <span className="font-mono">{liveDuration.digital}</span>
+                            </span>
+                          ) : (
+                            <span className="font-bold text-xs px-2.5 py-1 rounded-xl border bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+                              ⏱️ {duration.text}
+                            </span>
+                          )}
                         </td>
                         <td className="py-4 px-5 text-xs text-slate-600 dark:text-slate-400 truncate max-w-[200px]" title={session.deviceInfo}>
                           {session.deviceInfo || 'متصفح ويب'}
@@ -707,6 +901,21 @@ export const UsersView: React.FC<Props> = ({
                             <span className="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-400 text-xs font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-xl">
                               <span>انتهت الجلسة</span>
                             </span>
+                          )}
+                        </td>
+                        <td className="py-4 px-5 text-center">
+                          {isOnline ? (
+                            <button
+                              type="button"
+                              onClick={() => handleTerminateSession(session)}
+                              disabled={isTerminating}
+                              className="px-2.5 py-1 text-xs font-bold text-red-600 hover:text-white bg-red-50 hover:bg-red-600 border border-red-200 hover:border-red-600 dark:bg-red-950/40 dark:hover:bg-red-600 dark:text-red-400 dark:hover:text-white dark:border-red-800 rounded-lg transition cursor-pointer"
+                              title="إنهاء الجلسة يدوياً"
+                            >
+                              إنهاء الجلسة
+                            </button>
+                          ) : (
+                            <span className="text-slate-400 text-xs">-</span>
                           )}
                         </td>
                       </tr>

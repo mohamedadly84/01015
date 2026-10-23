@@ -238,6 +238,28 @@ export const SettingsView: React.FC<Props> = ({ db, onUpdateDb, onSyncServer }) 
               )}
             </div>
 
+            {/* Inactivity Auto-Logout Timeout setting */}
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+              <label className="block text-xs font-bold text-slate-800">
+                مهلة الخروج التلقائي عند عدم النشاط (Inactivity Auto-Logout)
+              </label>
+              <p className="text-[11px] text-slate-500">
+                يتم تسجيل خروج المستخدم تلقائياً بعد مرور هذا الوقت دون أي تفاعل لحماية أمان الحسابات والبيانات.
+              </p>
+              <select
+                value={settings.inactivityTimeoutMinutes ?? 15}
+                onChange={e => setSettings({ ...settings, inactivityTimeoutMinutes: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm font-bold bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              >
+                <option value={5}>5 دقائق (أمان فائق)</option>
+                <option value={10}>10 دقائق</option>
+                <option value={15}>15 دقيقة (الموصى به)</option>
+                <option value={30}>30 دقيقة</option>
+                <option value={60}>60 دقيقة (ساعة كاملة)</option>
+                <option value={0}>تعطيل الخروج التلقائي</option>
+              </select>
+            </div>
+
             <button
               type="submit"
               className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-sm"

@@ -120,11 +120,13 @@ export interface CompanySettings {
   address: string;
   currency: string;
   masterPlanImage?: string; // صورة المخطط العام للمشروع ككل
+  inactivityTimeoutMinutes?: number; // مهلة الخروج التلقائي عند عدم النشاط بالدقائق (الافتراضي 15 دقيقة)
 }
 
 export type ActivityActionType =
   | 'login'
   | 'logout'
+  | 'session_terminate'
   | 'unit_add'
   | 'unit_update'
   | 'unit_delete'
@@ -173,6 +175,8 @@ export interface UserSession {
   deviceInfo?: string; // نوع المتصفح والجهاز
   activePage?: string; // الصفحة أو التبويب الحالي
   isOnline?: boolean; // حالة الاتصال المباشرة
+  terminatedReason?: string; // سبب إنهاء الجلسة (يدوي / عدم نشاط)
+  terminatedBy?: string; // اسم من قام بالإنهاء
 }
 
 export interface AppDatabase {

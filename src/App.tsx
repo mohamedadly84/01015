@@ -17,6 +17,8 @@ import {
   startOrUpdateUserSession,
   heartbeatUserSession,
   endUserSession,
+  recordInactivityAutoLogout,
+  getCurrentSessionId,
   logActivity,
   isSessionOnline
 } from './services/activityLogger';
@@ -44,7 +46,7 @@ import { PublicCatalogView } from './components/views/PublicCatalogView';
 
 import {
   Building2, LogOut, CheckCircle2, RefreshCw, KeyRound, Lock, User as UserIcon,
-  Cloud, CloudOff, Globe, Grid, Sun, Moon
+  Cloud, CloudOff, Globe, Grid, Sun, Moon, AlertTriangle, Timer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -280,6 +282,90 @@ export default function App() {
     };
   }, [currentUser?.id, activeTab]);
 
+  // Inactivity tracking and session termination states
+  const [autoLogoutNotice, setAutoLogoutNotice] = useState<string | null>(null);
+  const [inactivityCountdown, setInactivityCountdown] = useState<number | null>(null);
+  const lastActivityTimeRef = React.useRef<number>(Date.now());
+
+  const resetActivityTimer = React.useCallback(() => {
+    lastActivityTimeRef.current = Date.now();
+    setInactivityCountdown(null);
+  }, []);
+
+  // Listen to user interactions (mouse, keyboard, scroll, touch, click)
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+    const handleUserActivity = () => {
+      lastActivityTimeRef.current = Date.now();
+      if (inactivityCountdown !== null) {
+        setInactivityCountdown(null);
+      }
+    };
+
+    events.forEach(evt => window.addEventListener(evt, handleUserActivity, { passive: true }));
+    return () => {
+      events.forEach(evt => window.removeEventListener(evt, handleUserActivity));
+    };
+  }, [currentUser?.id, inactivityCountdown]);
+
+  // Periodic inactivity timeout check
+  useEffect(() => {
+    if (!currentUser) {
+      setInactivityCountdown(null);
+      return;
+    }
+
+    const timeoutMinutes = db.settings?.inactivityTimeoutMinutes ?? 15;
+    if (timeoutMinutes <= 0) {
+      setInactivityCountdown(null);
+      return;
+    }
+
+    const timeoutMs = timeoutMinutes * 60 * 1000;
+    const warningThresholdMs = 60 * 1000; // Warning in the last 60 seconds
+
+    const checkTimer = setInterval(() => {
+      const idleMs = Date.now() - lastActivityTimeRef.current;
+      const remainingMs = timeoutMs - idleMs;
+
+      if (remainingMs <= 0) {
+        // Auto logout triggered!
+        const updatedDb = recordInactivityAutoLogout(db, currentUser, timeoutMinutes);
+        handleUpdateDb(updatedDb);
+        logoutFirebaseAuth().catch(() => {});
+        setLoggedInUser(null);
+        setCurrentUser(null);
+        setAutoLogoutNotice(`تم تسجيل الخروج تلقائياً لعدم وجود أي تفاعل في البرنامج لمدة ${timeoutMinutes} دقيقة لحماية سرية البيانات.`);
+        setInactivityCountdown(null);
+      } else if (remainingMs <= warningThresholdMs) {
+        setInactivityCountdown(Math.max(1, Math.ceil(remainingMs / 1000)));
+      } else {
+        if (inactivityCountdown !== null) {
+          setInactivityCountdown(null);
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(checkTimer);
+  }, [currentUser?.id, db.settings?.inactivityTimeoutMinutes, db, inactivityCountdown]);
+
+  // Listen to session changes: If the current user session is terminated by an admin
+  useEffect(() => {
+    if (!currentUser) return;
+    const mySessionId = getCurrentSessionId();
+    const mySession = db.sessions?.find(s => s.id === mySessionId);
+    if (mySession && (mySession.logoutTime || mySession.terminatedReason)) {
+      const reason = mySession.terminatedReason || 'تم إنهاء جلستك من قِبل مسؤول النظام';
+      setAutoLogoutNotice(reason);
+      logoutFirebaseAuth().catch(() => {});
+      setLoggedInUser(null);
+      setCurrentUser(null);
+      setInactivityCountdown(null);
+    }
+  }, [db.sessions, currentUser?.id]);
+
   const handleManualSync = async () => {
     setIsSyncing(true);
     const ok = await syncServerDatabase(db);
@@ -310,6 +396,9 @@ export default function App() {
         (found.username.toLowerCase() === 'admin' && (loginPassword === 'admin' || loginPassword === 'admin123'));
 
       if (isMatch) {
+        setAutoLogoutNotice(null);
+        setInactivityCountdown(null);
+        lastActivityTimeRef.current = Date.now();
         setLoggedInUser(found);
         setCurrentUser(found);
         const { updatedDb } = startOrUpdateUserSession(db, found, activeTab);
@@ -326,6 +415,9 @@ export default function App() {
     try {
       const gUser = await loginWithGoogle();
       if (gUser) {
+        setAutoLogoutNotice(null);
+        setInactivityCountdown(null);
+        lastActivityTimeRef.current = Date.now();
         const userObj: User = {
           id: 999,
           username: gUser.email?.split('@')[0] || 'google_user',
@@ -356,6 +448,7 @@ export default function App() {
     setCurrentUser(null);
     setLoginUsername('');
     setLoginPassword('');
+    setInactivityCountdown(null);
   };
 
   // If accessed via QR Code scan (?unit=id), render the live public unit card directly without login screen!
@@ -444,6 +537,24 @@ export default function App() {
             <h1 className="text-2xl font-black text-slate-900">برنامج المحاسبة العقارية</h1>
             <p className="text-xs text-slate-500">نظام إدارة وتطوير الوحدات والعقود والتحصيل</p>
           </div>
+
+          {autoLogoutNotice && (
+            <div className="p-4 bg-amber-50 text-amber-800 text-xs rounded-2xl border border-amber-300 flex items-start gap-2.5 text-right shadow-sm">
+              <Timer className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <span className="font-bold block mb-1">تنبيه أمان الجلسة:</span>
+                <span>{autoLogoutNotice}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAutoLogoutNotice(null)}
+                className="text-amber-600 hover:text-amber-800 font-bold text-xs cursor-pointer"
+                title="إغلاق التنبيه"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             {loginError && (
@@ -852,6 +963,52 @@ export default function App() {
           db={db}
           onClose={() => setIsSummaryReportOpen(false)}
         />
+      )}
+
+      {/* Inactivity Warning Modal */}
+      {inactivityCountdown !== null && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 border-2 border-amber-500 space-y-5 text-center relative">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 mx-auto animate-bounce">
+              <Timer className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                تنبيه عدم النشاط في البرنامج
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                لم يتم تسجيل أي تفاعل في البرنامج مؤخراً. للحفاظ على سرية وأمان البيانات، سيتم قفل الجلسة وتسجيل الخروج التلقائي خلال:
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
+              <span className="font-mono font-black text-4xl text-amber-600 dark:text-amber-400 block tracking-widest animate-pulse">
+                00:{inactivityCountdown.toString().padStart(2, '0')}
+              </span>
+              <span className="text-xs font-bold text-amber-700 dark:text-amber-300 mt-1 block">
+                ثانية متبقية قبل تسجيل الخروج
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={resetActivityTimer}
+                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-sm transition shadow-lg shadow-emerald-600/30 cursor-pointer"
+              >
+                ✓ أنا متواجد، استمر في البرنامج
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full sm:w-auto py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition cursor-pointer"
+              >
+                تسجيل الخروج الآن
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
