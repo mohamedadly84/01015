@@ -22,6 +22,14 @@ import {
   logActivity,
   isSessionOnline
 } from './services/activityLogger';
+import {
+  getLoginSecurityState,
+  recordFailedLoginAttempt,
+  clearLoginSecurityState,
+  formatCountdownSeconds,
+  LoginSecurityState,
+  MAX_LOGIN_ATTEMPTS
+} from './services/securityGuard';
 
 // Modals
 import { QRCodeModal } from './components/QRCodeModal';
@@ -46,7 +54,7 @@ import { PublicCatalogView } from './components/views/PublicCatalogView';
 
 import {
   Building2, LogOut, CheckCircle2, RefreshCw, KeyRound, Lock, User as UserIcon,
-  Cloud, CloudOff, Globe, Grid, Sun, Moon, AlertTriangle, Timer
+  Cloud, CloudOff, Globe, Grid, Sun, Moon, AlertTriangle, Timer, ShieldCheck, ShieldAlert, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -66,6 +74,7 @@ export default function App() {
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncNotice, setSyncNotice] = useState<string>('سحابي متصل (مزامنة حية لحظية)');
+  const syncDebounceRef = React.useRef<any>(null);
 
   // Check if current URL contains a scanned unit parameter e.g. ?unit=123
   const [publicUnitId, setPublicUnitId] = useState<number | null>(() => {
@@ -150,6 +159,17 @@ export default function App() {
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [loginSecurity, setLoginSecurity] = useState<LoginSecurityState>(() => getLoginSecurityState());
+
+  // Real-time tick for lockout countdown
+  useEffect(() => {
+    if (!loginSecurity.isLocked) return;
+    const timer = setInterval(() => {
+      const cur = getLoginSecurityState(loginUsername);
+      setLoginSecurity(cur);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [loginSecurity.isLocked, loginUsername]);
 
   // Initial load and live real-time subscription from Firebase Firestore
   useEffect(() => {
@@ -236,14 +256,22 @@ export default function App() {
 
     setDb(finalDb);
     saveLocalDatabase(finalDb);
-    setIsSyncing(true);
-    syncServerDatabase(finalDb).then(ok => {
-      setIsSyncing(false);
-      if (ok) {
-        setSyncNotice('تم الحفظ سحابياً فوراً');
-        setTimeout(() => setSyncNotice('سحابي متصل (مزامنة حية لحظية)'), 2000);
-      }
-    });
+    // Anti-Overload: Debounce network sync requests to prevent server spikes and high load
+    if (syncDebounceRef.current) {
+      clearTimeout(syncDebounceRef.current);
+    }
+    syncDebounceRef.current = setTimeout(() => {
+      setIsSyncing(true);
+      syncServerDatabase(finalDb).then(ok => {
+        setIsSyncing(false);
+        if (ok) {
+          setSyncNotice('تم الحفظ سحابياً فوراً');
+          setTimeout(() => setSyncNotice('سحابي متصل (مزامنة حية لحظية)'), 2000);
+        }
+      }).catch(() => {
+        setIsSyncing(false);
+      });
+    }, 350);
   };
 
   // Heartbeat effect for live user presence (runs every 25 seconds)
@@ -379,10 +407,18 @@ export default function App() {
     setTimeout(() => setSyncNotice('سحابي متصل (مزامنة حية لحظية)'), 2500);
   };
 
-  // Login
+  // Login with Brute-Force & Attempt Limit Defense
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
+
+    // 1. Check if currently locked out
+    const currentSec = getLoginSecurityState(loginUsername);
+    if (currentSec.isLocked) {
+      setLoginSecurity(currentSec);
+      setLoginError(`تم قفل محاولات الدخول مؤقتاً لحماية النظام بعد استنفاد ${currentSec.maxAttempts} محاولات غير صحيحة. يرجى الانتظار (${formatCountdownSeconds(currentSec.remainingSeconds)}) قبل المحاولة مجدداً.`);
+      return;
+    }
 
     const trimmedUser = loginUsername.trim().toLowerCase();
     const found = db.users.find(
@@ -396,6 +432,9 @@ export default function App() {
         (found.username.toLowerCase() === 'admin' && (loginPassword === 'admin' || loginPassword === 'admin123'));
 
       if (isMatch) {
+        // Success: Reset security attempts and lockouts
+        clearLoginSecurityState(loginUsername);
+        setLoginSecurity(getLoginSecurityState());
         setAutoLogoutNotice(null);
         setInactivityCountdown(null);
         lastActivityTimeRef.current = Date.now();
@@ -407,7 +446,26 @@ export default function App() {
       }
     }
 
-    setLoginError('اسم المستخدم أو كلمة المرور غير صحيحة، أو الحساب معطل.');
+    // Failed attempt: record and calculate lock
+    const newSec = recordFailedLoginAttempt(loginUsername);
+    setLoginSecurity(newSec);
+
+    if (newSec.isLocked) {
+      // Log security event in activity logs
+      const updatedWithLockLog = logActivity(
+        db,
+        null,
+        'login',
+        'تحذير أمني: حظر محاولات الدخول',
+        `تم قفل محاولات الدخول مؤقتاً لمدة 5 دقائق بعد استنفاد ${MAX_LOGIN_ATTEMPTS} محاولات خاطئة متتالية لمنع هجمات التخمين (Anti-Brute-Force).`,
+        `قفل الحساب @${trimmedUser || 'غير محدد'}`
+      );
+      handleUpdateDb(updatedWithLockLog);
+      setLoginError(`تم استنفاد الحد الأقصى للمحاولات (${MAX_LOGIN_ATTEMPTS} محاولات). تم قفل تسجيل الدخول مؤقتاً لمدة 5 دقائق لحماية النظام من الهجمات. متبقي: ${formatCountdownSeconds(newSec.remainingSeconds)}.`);
+    } else {
+      const remaining = newSec.maxAttempts - newSec.attempts;
+      setLoginError(`اسم المستخدم أو كلمة المرور غير صحيحة، أو الحساب معطل. متبقي لديك (${remaining}) ${remaining === 1 ? 'محاولة واحدة' : 'محاولات'} قبل قفل تسجيل الدخول مؤقتاً.`);
+    }
   };
 
   const handleGoogleLogin = async () => {
@@ -556,24 +614,42 @@ export default function App() {
             </div>
           )}
 
+          {loginSecurity.isLocked && (
+            <div className="p-4 bg-rose-50 border-2 border-rose-300 text-rose-800 text-xs rounded-2xl space-y-2 text-center shadow-md animate-pulse">
+              <div className="flex items-center justify-center gap-2 font-black text-sm text-rose-600">
+                <ShieldAlert className="w-5 h-5" />
+                <span>تم قفل محاولات تسجيل الدخول مؤقتاً</span>
+              </div>
+              <p className="text-[11px] text-rose-700 font-medium">
+                تم استنفاد 5 محاولات خاطئة متتالية. تم تفعيل الحظر المؤقت لحماية النظام من هجمات التخمين (Anti-Brute-Force).
+              </p>
+              <div className="p-2.5 rounded-xl bg-rose-100 font-mono font-black text-base text-rose-800 flex items-center justify-center gap-2">
+                <Timer className="w-4 h-4 animate-spin text-rose-600" />
+                <span>يرجى الانتظار: {formatCountdownSeconds(loginSecurity.remainingSeconds)}</span>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-4">
             {loginError && (
-              <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200">
-                {loginError}
+              <div className="p-3.5 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+                <span className="leading-relaxed">{loginError}</span>
               </div>
             )}
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">اسم المستخدم</label>
               <div className="relative">
-                <UserIcon className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
+                <UserIcon className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
                 <input
                   type="text"
                   required
+                  disabled={loginSecurity.isLocked}
                   value={loginUsername}
                   onChange={e => setLoginUsername(e.target.value)}
                   placeholder="مثال: admin"
-                  className="w-full pr-9 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full pr-9 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:bg-slate-100 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -581,24 +657,39 @@ export default function App() {
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">كلمة المرور</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
+                <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
                 <input
                   type="password"
                   required
+                  disabled={loginSecurity.isLocked}
                   value={loginPassword}
                   onChange={e => setLoginPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pr-9 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full pr-9 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:bg-slate-100 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-600/30 cursor-pointer"
+              disabled={loginSecurity.isLocked}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-600/30 cursor-pointer flex items-center justify-center gap-2"
             >
-              تسجيل الدخول للنظام
+              {loginSecurity.isLocked ? (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>محظور مؤقتاً ({formatCountdownSeconds(loginSecurity.remainingSeconds)})</span>
+                </>
+              ) : (
+                <span>تسجيل الدخول للنظام</span>
+              )}
             </button>
+
+            {/* Anti-Attack & Rate Limit Trust Indicator */}
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 pt-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <span>محمي ضد هجمات التخمين والضغط الزائد (Anti-Brute-Force & Rate-Limiting)</span>
+            </div>
           </form>
 
           {/* Visitor Public Catalog Link */}

@@ -515,8 +515,8 @@ export const UsersView: React.FC<Props> = ({
       {/* ============================================================ */}
       {activeSubtab === 'online' && (
         <div className="space-y-6">
-          {/* Top Presence & Inactivity Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Top Presence & Inactivity Controls & Security Defense */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-5 rounded-3xl glass-panel border border-emerald-500/30 shadow-xl flex items-center justify-between">
               <div>
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">
@@ -554,19 +554,38 @@ export const UsersView: React.FC<Props> = ({
             <div className="p-5 rounded-3xl glass-panel border border-amber-500/30 shadow-xl flex items-center justify-between">
               <div>
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">
-                  الخروج التلقائي عند عدم النشاط
+                  الخروج التلقائي لعدم النشاط
                 </span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">
-                    {currentInactivityMinutes > 0 ? `${currentInactivityMinutes} دقيقة` : 'معطل'}
+                    {currentInactivityMinutes > 0 ? `${currentInactivityMinutes} د` : 'معطل'}
                   </span>
                 </div>
                 <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
-                  خروج آلي إذا تُرك البرنامج دون عمل
+                  حماية الحسابات عند الخمول
                 </span>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
                 <Timer className="w-6 h-6" />
+              </div>
+            </div>
+
+            <div className="p-5 rounded-3xl glass-panel border border-rose-500/30 shadow-xl flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                  درع حماية الدخول والضغط
+                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg font-black text-rose-600 dark:text-rose-400">
+                    أقصى 5 محاولات
+                  </span>
+                </div>
+                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">
+                  ✓ Anti-Brute-Force & RateLimit
+                </span>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                <Shield className="w-6 h-6" />
               </div>
             </div>
           </div>
