@@ -1,4 +1,4 @@
-import { AppDatabase } from '../types';
+import type { AppDatabase } from '../types/index.ts';
 
 // قاعدة بيانات جديدة ونظيفة تماماً وخالية من أي بيانات تجريبية
 export const initialData: AppDatabase = {
