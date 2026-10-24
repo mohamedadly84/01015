@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import type { Plugin, ViteDevServer } from 'vite';
+import type { Plugin, ViteDevServer, PreviewServer } from 'vite';
 import { initialData } from '../src/services/initialData';
 
 const DB_DIR = path.resolve(process.cwd(), 'data');
@@ -57,13 +57,10 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000);
 
-export function apiPlugin(): Plugin {
-  return {
-    name: 'realestate-api-server',
-    configureServer(server: ViteDevServer) {
-      ensureDbFile();
+function registerMiddlewares(server: ViteDevServer | PreviewServer) {
+  ensureDbFile();
 
-      server.middlewares.use((req, res, next) => {
+  server.middlewares.use((req, res, next) => {
         // Global HTTP Security headers
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -150,6 +147,17 @@ export function apiPlugin(): Plugin {
 
         next();
       });
+}
+
+export function apiPlugin(): Plugin {
+  return {
+    name: 'realestate-api-server',
+    configureServer(server: ViteDevServer) {
+      registerMiddlewares(server);
+    },
+    configurePreviewServer(server: PreviewServer) {
+      registerMiddlewares(server);
     }
   };
 }
+
