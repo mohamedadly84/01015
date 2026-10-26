@@ -15,6 +15,16 @@ export function getLocalDatabase(): AppDatabase {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.units) && Array.isArray(parsed.customers)) {
+        if (Array.isArray(parsed.users)) {
+          const hasAdmin = parsed.users.some((u: any) => u.username?.toLowerCase() === 'admin');
+          const hasEngineer = parsed.users.some((u: any) => u.username?.toLowerCase() === 'engineer');
+          if (!hasAdmin || !hasEngineer) {
+            const missing = initialData.users.filter(
+              iu => !parsed.users.some((pu: any) => pu.username?.toLowerCase() === iu.username.toLowerCase())
+            );
+            parsed.users = [...parsed.users, ...missing];
+          }
+        }
         return parsed;
       }
     }
@@ -100,6 +110,9 @@ export function setCurrentUser(user: any) {
 }
 
 export const PERMISSIONS: Record<UserRole, {
+  view_dashboard: boolean;
+  view_projects: boolean;
+  edit_projects: boolean;
   view_units: boolean;
   edit_units: boolean;
   view_customers: boolean;
@@ -117,6 +130,8 @@ export const PERMISSIONS: Record<UserRole, {
   view_users: boolean;
 }> = {
   admin: {
+    view_dashboard: true,
+    view_projects: true, edit_projects: true,
     view_units: true, edit_units: true,
     view_customers: true, edit_customers: true,
     view_sales: true, edit_sales: true,
@@ -126,6 +141,8 @@ export const PERMISSIONS: Record<UserRole, {
     view_reports: true, view_settings: true, view_users: true,
   },
   manager: {
+    view_dashboard: true,
+    view_projects: true, edit_projects: true,
     view_units: true, edit_units: true,
     view_customers: true, edit_customers: true,
     view_sales: true, edit_sales: true,
@@ -135,6 +152,8 @@ export const PERMISSIONS: Record<UserRole, {
     view_reports: true, view_settings: false, view_users: true,
   },
   accountant: {
+    view_dashboard: true,
+    view_projects: true, edit_projects: false,
     view_units: true, edit_units: false,
     view_customers: true, edit_customers: false,
     view_sales: true, edit_sales: false,
@@ -144,9 +163,22 @@ export const PERMISSIONS: Record<UserRole, {
     view_reports: true, view_settings: false, view_users: false,
   },
   sales: {
+    view_dashboard: true,
+    view_projects: true, edit_projects: false,
     view_units: true, edit_units: false,
     view_customers: true, edit_customers: true,
     view_sales: true, edit_sales: true,
+    view_collection: false, edit_collection: false,
+    view_loans: false, edit_loans: false,
+    view_expenses: false, edit_expenses: false,
+    view_reports: false, view_settings: false, view_users: false,
+  },
+  engineer: {
+    view_dashboard: false,
+    view_projects: true, edit_projects: true,
+    view_units: true, edit_units: true,
+    view_customers: false, edit_customers: false,
+    view_sales: false, edit_sales: false,
     view_collection: false, edit_collection: false,
     view_loans: false, edit_loans: false,
     view_expenses: false, edit_expenses: false,

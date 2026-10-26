@@ -36,6 +36,13 @@ export const PublicUnitView: React.FC<Props> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showQrBrochureModal, setShowQrBrochureModal] = useState(false);
 
+  // Keep state synchronized with parent initialDb whenever updated
+  useEffect(() => {
+    if (initialDb && Array.isArray(initialDb.units)) {
+      setDb(initialDb);
+    }
+  }, [initialDb]);
+
   // Internal theme fallback
   const [internalDarkMode, setInternalDarkMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {

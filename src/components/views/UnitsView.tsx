@@ -17,6 +17,7 @@ interface Props {
   canEdit: boolean;
   onUpdateDb: (updated: AppDatabase) => void;
   onOpenQr: (unit: Unit) => void;
+  onOpenVisitor?: () => void;
 }
 
 export const UnitsView: React.FC<Props> = ({
@@ -24,6 +25,7 @@ export const UnitsView: React.FC<Props> = ({
   canEdit,
   onUpdateDb,
   onOpenQr,
+  onOpenVisitor,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBuilding, setFilterBuilding] = useState('الكل');
@@ -293,7 +295,13 @@ export const UnitsView: React.FC<Props> = ({
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            onClick={() => window.open('/?mode=visitor', '_blank')}
+            onClick={() => {
+              if (onOpenVisitor) {
+                onOpenVisitor();
+              } else if (typeof window !== 'undefined') {
+                window.location.search = '?mode=visitor';
+              }
+            }}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-sm font-semibold transition border border-indigo-200 shadow-xs cursor-pointer"
             title="فتح موقع ومعرض الوحدات المخصص للزائرين"
           >

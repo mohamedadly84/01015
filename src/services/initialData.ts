@@ -12,6 +12,15 @@ export const initialData: AppDatabase = {
       active: true,
       createdAt: '2026-01-01',
       password: 'admin'
+    },
+    {
+      id: 2,
+      username: 'engineer',
+      fullName: 'المهندس المسؤول',
+      role: 'engineer',
+      active: true,
+      createdAt: '2026-01-01',
+      password: '123'
     }
   ],
   units: [],

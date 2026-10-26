@@ -120,9 +120,13 @@ export function subscribeToCloudDatabase(
       }
     },
     (error) => {
-      console.error('Firestore onSnapshot subscription error:', error);
+      console.warn('Firestore onSnapshot subscription notice:', error);
       if (onError) onError(error);
-      handleFirestoreError(error, OperationType.GET, REALESTATE_DOC_PATH);
+      try {
+        handleFirestoreError(error, OperationType.GET, REALESTATE_DOC_PATH);
+      } catch {
+        // Logged structured details via handleFirestoreError; prevented unhandled async crash
+      }
     }
   );
 

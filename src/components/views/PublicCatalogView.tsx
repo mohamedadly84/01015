@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Unit, AppDatabase, Project } from '../../types';
 import { formatCurrency } from '../../utils/helpers';
 import { subscribeToCloudDatabase } from '../../services/firebase';
-import { getLocalDatabase } from '../../services/storage';
+import { getLocalDatabase, fetchServerDatabase } from '../../services/storage';
 import { UnitFloorPlan } from '../UnitFloorPlan';
 import { QRCodeModal } from '../QRCodeModal';
 import { MasterPlanView } from '../MasterPlanView';
@@ -36,6 +36,13 @@ export const PublicCatalogView: React.FC<Props> = ({
   const [db, setDb] = useState<AppDatabase>(initialDb || getLocalDatabase());
   const [lastRefreshed, setLastRefreshed] = useState<string>(new Date().toLocaleTimeString('ar-EG'));
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Keep state synchronized with parent initialDb whenever updated
+  useEffect(() => {
+    if (initialDb && Array.isArray(initialDb.units)) {
+      setDb(initialDb);
+    }
+  }, [initialDb]);
 
   // Internal theme fallback if not passed from parent
   const [internalDarkMode, setInternalDarkMode] = useState<boolean>(() => {
@@ -187,12 +194,16 @@ export const PublicCatalogView: React.FC<Props> = ({
   const reservedUnits = units.filter(u => u.status === 'محجوزة').length;
   const soldUnits = units.filter(u => u.status === 'مباعة').length;
 
-  const handleManualRefresh = () => {
+  const handleManualRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      setLastRefreshed(new Date().toLocaleTimeString('ar-EG'));
-      setIsRefreshing(false);
-    }, 400);
+    try {
+      const serverData = await fetchServerDatabase();
+      if (serverData && Array.isArray(serverData.units)) {
+        setDb(serverData);
+      }
+    } catch {}
+    setLastRefreshed(new Date().toLocaleTimeString('ar-EG'));
+    setIsRefreshing(false);
   };
 
   const formatFloorName = (floorNum: number) => {

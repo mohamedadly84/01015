@@ -43,6 +43,20 @@ export function getCurrentSessionId(): string {
   return sId;
 }
 
+export function createNewSessionId(): string {
+  const sId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  if (typeof window !== 'undefined') {
+    sessionStorage.setItem(SESSION_STORAGE_KEY, sId);
+  }
+  return sId;
+}
+
+export function clearCurrentSessionId(): void {
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  }
+}
+
 /**
  * Checks whether a session is currently online based on heartbeat timestamp and logout status
  */
@@ -196,17 +210,26 @@ export function logActivity(
 export function startOrUpdateUserSession(
   db: AppDatabase,
   user: User,
-  activePage: string = 'الرئيسية'
+  activePage: string = 'الرئيسية',
+  forceNew: boolean = false
 ): { updatedDb: AppDatabase; sessionId: string } {
-  const sessionId = getCurrentSessionId();
+  const sessionId = forceNew ? createNewSessionId() : getCurrentSessionId();
   const now = new Date().toISOString();
   const existingSessions = Array.isArray(db.sessions) ? [...db.sessions] : [];
   const sessionIndex = existingSessions.findIndex(s => s.id === sessionId);
 
-  if (sessionIndex >= 0) {
-    // Update existing session heartbeat
+  if (sessionIndex >= 0 && !forceNew) {
+    // Update existing session heartbeat and ensure any old termination status is wiped
+    const updatedItem = { ...existingSessions[sessionIndex] };
+    delete updatedItem.logoutTime;
+    delete updatedItem.terminatedReason;
+
     existingSessions[sessionIndex] = {
-      ...existingSessions[sessionIndex],
+      ...updatedItem,
+      userId: user.id,
+      username: user.username,
+      fullName: user.fullName || user.username,
+      role: user.role,
       lastActiveTime: now,
       activePage,
       isOnline: true
@@ -217,7 +240,7 @@ export function startOrUpdateUserSession(
     };
   }
 
-  // Create new session
+  // Create brand new session
   const newSession: UserSession = {
     id: sessionId,
     userId: user.id,
@@ -231,7 +254,7 @@ export function startOrUpdateUserSession(
     isOnline: true
   };
 
-  const updatedSessions = [newSession, ...existingSessions].slice(0, MAX_SESSIONS);
+  const updatedSessions = [newSession, ...existingSessions.filter(s => s.id !== sessionId)].slice(0, MAX_SESSIONS);
 
   // Also log login activity
   const updatedDbWithLog = logActivity(

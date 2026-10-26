@@ -16,6 +16,7 @@ interface Props {
   companyPhone?: string;
   companyAddress?: string;
   onClose: () => void;
+  onOpenUnitPreview?: (unitId: number) => void;
 }
 
 export const QRCodeModal: React.FC<Props> = ({
@@ -23,7 +24,8 @@ export const QRCodeModal: React.FC<Props> = ({
   companyName = '',
   companyPhone = '',
   companyAddress = '',
-  onClose
+  onClose,
+  onOpenUnitPreview,
 }) => {
   const [qrUrl, setQrUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
@@ -83,8 +85,13 @@ export const QRCodeModal: React.FC<Props> = ({
   };
 
   const handleOpenPreview = () => {
-    if (!liveScanUrl) return;
-    window.open(liveScanUrl, '_blank');
+    if (!unit) return;
+    if (onOpenUnitPreview) {
+      onOpenUnitPreview(unit.id);
+      onClose();
+    } else if (liveScanUrl) {
+      window.open(liveScanUrl, '_blank');
+    }
   };
 
   // Status badges

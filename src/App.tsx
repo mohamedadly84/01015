@@ -19,17 +19,10 @@ import {
   endUserSession,
   recordInactivityAutoLogout,
   getCurrentSessionId,
+  clearCurrentSessionId,
   logActivity,
   isSessionOnline
 } from './services/activityLogger';
-import {
-  getLoginSecurityState,
-  recordFailedLoginAttempt,
-  clearLoginSecurityState,
-  formatCountdownSeconds,
-  LoginSecurityState,
-  MAX_LOGIN_ATTEMPTS
-} from './services/securityGuard';
 
 // Modals
 import { QRCodeModal } from './components/QRCodeModal';
@@ -54,7 +47,7 @@ import { PublicCatalogView } from './components/views/PublicCatalogView';
 
 import {
   Building2, LogOut, CheckCircle2, RefreshCw, KeyRound, Lock, User as UserIcon,
-  Cloud, CloudOff, Globe, Grid, Sun, Moon, AlertTriangle, Timer, ShieldCheck, ShieldAlert, Zap
+  Cloud, CloudOff, Globe, Grid, Sun, Moon, AlertTriangle, Timer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -74,7 +67,6 @@ export default function App() {
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncNotice, setSyncNotice] = useState<string>('سحابي متصل (مزامنة حية لحظية)');
-  const syncDebounceRef = React.useRef<any>(null);
 
   // Check if current URL contains a scanned unit parameter e.g. ?unit=123
   const [publicUnitId, setPublicUnitId] = useState<number | null>(() => {
@@ -159,17 +151,6 @@ export default function App() {
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [loginSecurity, setLoginSecurity] = useState<LoginSecurityState>(() => getLoginSecurityState());
-
-  // Real-time tick for lockout countdown
-  useEffect(() => {
-    if (!loginSecurity.isLocked) return;
-    const timer = setInterval(() => {
-      const cur = getLoginSecurityState(loginUsername);
-      setLoginSecurity(cur);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [loginSecurity.isLocked, loginUsername]);
 
   // Initial load and live real-time subscription from Firebase Firestore
   useEffect(() => {
@@ -256,22 +237,14 @@ export default function App() {
 
     setDb(finalDb);
     saveLocalDatabase(finalDb);
-    // Anti-Overload: Debounce network sync requests to prevent server spikes and high load
-    if (syncDebounceRef.current) {
-      clearTimeout(syncDebounceRef.current);
-    }
-    syncDebounceRef.current = setTimeout(() => {
-      setIsSyncing(true);
-      syncServerDatabase(finalDb).then(ok => {
-        setIsSyncing(false);
-        if (ok) {
-          setSyncNotice('تم الحفظ سحابياً فوراً');
-          setTimeout(() => setSyncNotice('سحابي متصل (مزامنة حية لحظية)'), 2000);
-        }
-      }).catch(() => {
-        setIsSyncing(false);
-      });
-    }, 350);
+    setIsSyncing(true);
+    syncServerDatabase(finalDb).then(ok => {
+      setIsSyncing(false);
+      if (ok) {
+        setSyncNotice('تم الحفظ سحابياً فوراً');
+        setTimeout(() => setSyncNotice('سحابي متصل (مزامنة حية لحظية)'), 2000);
+      }
+    });
   };
 
   // Heartbeat effect for live user presence (runs every 25 seconds)
@@ -345,6 +318,9 @@ export default function App() {
       return;
     }
 
+    // Always reset activity timer when user becomes authenticated so stale pre-login time is never used
+    lastActivityTimeRef.current = Date.now();
+
     const timeoutMinutes = db.settings?.inactivityTimeoutMinutes ?? 15;
     if (timeoutMinutes <= 0) {
       setInactivityCountdown(null);
@@ -365,31 +341,31 @@ export default function App() {
         logoutFirebaseAuth().catch(() => {});
         setLoggedInUser(null);
         setCurrentUser(null);
+        clearCurrentSessionId();
         setAutoLogoutNotice(`تم تسجيل الخروج تلقائياً لعدم وجود أي تفاعل في البرنامج لمدة ${timeoutMinutes} دقيقة لحماية سرية البيانات.`);
         setInactivityCountdown(null);
       } else if (remainingMs <= warningThresholdMs) {
         setInactivityCountdown(Math.max(1, Math.ceil(remainingMs / 1000)));
       } else {
-        if (inactivityCountdown !== null) {
-          setInactivityCountdown(null);
-        }
+        setInactivityCountdown(null);
       }
     }, 1000);
 
     return () => clearInterval(checkTimer);
-  }, [currentUser?.id, db.settings?.inactivityTimeoutMinutes, db, inactivityCountdown]);
+  }, [currentUser?.id, db.settings?.inactivityTimeoutMinutes]);
 
-  // Listen to session changes: If the current user session is terminated by an admin
+  // Listen to session changes: If the current user session is explicitly terminated by an admin
   useEffect(() => {
     if (!currentUser) return;
     const mySessionId = getCurrentSessionId();
     const mySession = db.sessions?.find(s => s.id === mySessionId);
-    if (mySession && (mySession.logoutTime || mySession.terminatedReason)) {
-      const reason = mySession.terminatedReason || 'تم إنهاء جلستك من قِبل مسؤول النظام';
+    if (mySession && mySession.terminatedReason) {
+      const reason = mySession.terminatedReason;
       setAutoLogoutNotice(reason);
       logoutFirebaseAuth().catch(() => {});
       setLoggedInUser(null);
       setCurrentUser(null);
+      clearCurrentSessionId();
       setInactivityCountdown(null);
     }
   }, [db.sessions, currentUser?.id]);
@@ -407,18 +383,10 @@ export default function App() {
     setTimeout(() => setSyncNotice('سحابي متصل (مزامنة حية لحظية)'), 2500);
   };
 
-  // Login with Brute-Force & Attempt Limit Defense
+  // Login
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
-
-    // 1. Check if currently locked out
-    const currentSec = getLoginSecurityState(loginUsername);
-    if (currentSec.isLocked) {
-      setLoginSecurity(currentSec);
-      setLoginError(`تم قفل محاولات الدخول مؤقتاً لحماية النظام بعد استنفاد ${currentSec.maxAttempts} محاولات غير صحيحة. يرجى الانتظار (${formatCountdownSeconds(currentSec.remainingSeconds)}) قبل المحاولة مجدداً.`);
-      return;
-    }
 
     const trimmedUser = loginUsername.trim().toLowerCase();
     const found = db.users.find(
@@ -432,40 +400,18 @@ export default function App() {
         (found.username.toLowerCase() === 'admin' && (loginPassword === 'admin' || loginPassword === 'admin123'));
 
       if (isMatch) {
-        // Success: Reset security attempts and lockouts
-        clearLoginSecurityState(loginUsername);
-        setLoginSecurity(getLoginSecurityState());
         setAutoLogoutNotice(null);
         setInactivityCountdown(null);
         lastActivityTimeRef.current = Date.now();
         setLoggedInUser(found);
         setCurrentUser(found);
-        const { updatedDb } = startOrUpdateUserSession(db, found, activeTab);
+        const { updatedDb } = startOrUpdateUserSession(db, found, activeTab, true);
         handleUpdateDb(updatedDb);
         return;
       }
     }
 
-    // Failed attempt: record and calculate lock
-    const newSec = recordFailedLoginAttempt(loginUsername);
-    setLoginSecurity(newSec);
-
-    if (newSec.isLocked) {
-      // Log security event in activity logs
-      const updatedWithLockLog = logActivity(
-        db,
-        null,
-        'login',
-        'تحذير أمني: حظر محاولات الدخول',
-        `تم قفل محاولات الدخول مؤقتاً لمدة 5 دقائق بعد استنفاد ${MAX_LOGIN_ATTEMPTS} محاولات خاطئة متتالية لمنع هجمات التخمين (Anti-Brute-Force).`,
-        `قفل الحساب @${trimmedUser || 'غير محدد'}`
-      );
-      handleUpdateDb(updatedWithLockLog);
-      setLoginError(`تم استنفاد الحد الأقصى للمحاولات (${MAX_LOGIN_ATTEMPTS} محاولات). تم قفل تسجيل الدخول مؤقتاً لمدة 5 دقائق لحماية النظام من الهجمات. متبقي: ${formatCountdownSeconds(newSec.remainingSeconds)}.`);
-    } else {
-      const remaining = newSec.maxAttempts - newSec.attempts;
-      setLoginError(`اسم المستخدم أو كلمة المرور غير صحيحة، أو الحساب معطل. متبقي لديك (${remaining}) ${remaining === 1 ? 'محاولة واحدة' : 'محاولات'} قبل قفل تسجيل الدخول مؤقتاً.`);
-    }
+    setLoginError('اسم المستخدم أو كلمة المرور غير صحيحة، أو الحساب معطل.');
   };
 
   const handleGoogleLogin = async () => {
@@ -486,7 +432,7 @@ export default function App() {
         };
         setLoggedInUser(userObj);
         setCurrentUser(userObj);
-        const { updatedDb } = startOrUpdateUserSession(db, userObj, activeTab);
+        const { updatedDb } = startOrUpdateUserSession(db, userObj, activeTab, true);
         handleUpdateDb(updatedDb);
       }
     } catch (err: any) {
@@ -501,6 +447,7 @@ export default function App() {
       const updatedDb = endUserSession(db, currentUser);
       handleUpdateDb(updatedDb);
     }
+    clearCurrentSessionId();
     logoutFirebaseAuth().catch(() => {});
     setLoggedInUser(null);
     setCurrentUser(null);
@@ -518,13 +465,9 @@ export default function App() {
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         onBack={() => {
-          if (typeof window !== 'undefined' && window.history.length > 1) {
-            window.history.back();
-          } else {
-            window.history.pushState({}, '', '?mode=visitor');
-            setPublicUnitId(null);
-            setIsVisitorMode(true);
-          }
+          window.history.pushState({}, '', window.location.pathname);
+          setPublicUnitId(null);
+          setIsVisitorMode(false);
         }}
         onGoToApp={() => {
           // Clear query param and navigate to main app
@@ -550,15 +493,13 @@ export default function App() {
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         onBack={() => {
-          if (typeof window !== 'undefined' && window.history.length > 1) {
-            window.history.back();
-          } else {
-            window.history.pushState({}, '', window.location.pathname);
-            setIsVisitorMode(false);
-          }
+          window.history.pushState({}, '', window.location.pathname);
+          setPublicUnitId(null);
+          setIsVisitorMode(false);
         }}
         onGoToLogin={() => {
           window.history.pushState({}, '', window.location.pathname);
+          setPublicUnitId(null);
           setIsVisitorMode(false);
         }}
         onSelectUnit={(id) => {
@@ -614,42 +555,24 @@ export default function App() {
             </div>
           )}
 
-          {loginSecurity.isLocked && (
-            <div className="p-4 bg-rose-50 border-2 border-rose-300 text-rose-800 text-xs rounded-2xl space-y-2 text-center shadow-md animate-pulse">
-              <div className="flex items-center justify-center gap-2 font-black text-sm text-rose-600">
-                <ShieldAlert className="w-5 h-5" />
-                <span>تم قفل محاولات تسجيل الدخول مؤقتاً</span>
-              </div>
-              <p className="text-[11px] text-rose-700 font-medium">
-                تم استنفاد 5 محاولات خاطئة متتالية. تم تفعيل الحظر المؤقت لحماية النظام من هجمات التخمين (Anti-Brute-Force).
-              </p>
-              <div className="p-2.5 rounded-xl bg-rose-100 font-mono font-black text-base text-rose-800 flex items-center justify-center gap-2">
-                <Timer className="w-4 h-4 animate-spin text-rose-600" />
-                <span>يرجى الانتظار: {formatCountdownSeconds(loginSecurity.remainingSeconds)}</span>
-              </div>
-            </div>
-          )}
-
           <form onSubmit={handleLogin} className="space-y-4">
             {loginError && (
-              <div className="p-3.5 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
-                <span className="leading-relaxed">{loginError}</span>
+              <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200">
+                {loginError}
               </div>
             )}
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">اسم المستخدم</label>
               <div className="relative">
-                <UserIcon className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                <UserIcon className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
                 <input
                   type="text"
                   required
-                  disabled={loginSecurity.isLocked}
                   value={loginUsername}
                   onChange={e => setLoginUsername(e.target.value)}
                   placeholder="مثال: admin"
-                  className="w-full pr-9 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:bg-slate-100 disabled:cursor-not-allowed"
+                  className="w-full pr-9 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -657,39 +580,24 @@ export default function App() {
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">كلمة المرور</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
                 <input
                   type="password"
                   required
-                  disabled={loginSecurity.isLocked}
                   value={loginPassword}
                   onChange={e => setLoginPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pr-9 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:bg-slate-100 disabled:cursor-not-allowed"
+                  className="w-full pr-9 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={loginSecurity.isLocked}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-600/30 cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-indigo-600/30 cursor-pointer"
             >
-              {loginSecurity.isLocked ? (
-                <>
-                  <Lock className="w-4 h-4" />
-                  <span>محظور مؤقتاً ({formatCountdownSeconds(loginSecurity.remainingSeconds)})</span>
-                </>
-              ) : (
-                <span>تسجيل الدخول للنظام</span>
-              )}
+              تسجيل الدخول للنظام
             </button>
-
-            {/* Anti-Attack & Rate Limit Trust Indicator */}
-            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 pt-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-              <span>محمي ضد هجمات التخمين والضغط الزائد (Anti-Brute-Force & Rate-Limiting)</span>
-            </div>
           </form>
 
           {/* Visitor Public Catalog Link */}
@@ -719,8 +627,8 @@ export default function App() {
 
   // Build visible tabs based on user permissions
   const tabs: { id: string; label: string; visible: boolean }[] = [
-    { id: '🏠 الرئيسية', label: '🏠 الرئيسية', visible: perms.view_units },
-    { id: '🏗️ المشاريع', label: '🏗️ المشاريع', visible: perms.view_units },
+    { id: '🏠 الرئيسية', label: '🏠 الرئيسية', visible: perms.view_dashboard },
+    { id: '🏗️ المشاريع', label: '🏗️ المشاريع', visible: perms.view_projects },
     { id: '🏢 الوحدات', label: '🏢 الوحدات', visible: perms.view_units },
     { id: '👥 العملاء', label: '👥 العملاء', visible: perms.view_customers },
     { id: '💰 البيع', label: '💰 البيع', visible: perms.view_sales },
@@ -737,19 +645,22 @@ export default function App() {
   // Auto redirect if activeTab is not permitted for the user's role
   useEffect(() => {
     if (currentUser) {
-      const userRole = currentUser.role || 'sales';
-      const userPerms = PERMISSIONS[userRole] || PERMISSIONS.sales;
-      if (activeTab === '⚙️ الإعدادات' && !userPerms.view_settings) {
-        setActiveTab('🏠 الرئيسية');
+      const currentTabDef = tabs.find(t => t.id === activeTab);
+      if (!currentTabDef || !currentTabDef.visible) {
+        const firstVisible = tabs.find(t => t.visible);
+        if (firstVisible) {
+          setActiveTab(firstVisible.id);
+        }
       }
     }
-  }, [currentUser?.role, activeTab]);
+  }, [currentUser?.role, activeTab, perms]);
 
   const roleBadgeMap: Record<string, string> = {
     admin: '🔴 مدير عام',
     manager: '🔵 مدير (بدون إعدادات)',
     accountant: '🟡 محاسب مالي',
     sales: '🟢 مسؤول مبيعات',
+    engineer: '🟣 مهندس (وحدات ومشاريع)',
   };
 
   const onlineUsersCount = useMemo(() => {
@@ -910,7 +821,7 @@ export default function App() {
             exit={{ opacity: 0, y: -10, filter: "blur(2px)" }}
             transition={{ type: "spring", stiffness: 360, damping: 28, mass: 0.8 }}
           >
-            {activeTab === '🏠 الرئيسية' && perms.view_units && (
+            {activeTab === '🏠 الرئيسية' && perms.view_dashboard && (
               <DashboardView
                 db={db}
                 onNavigateTab={tab => setActiveTab(tab)}
@@ -921,10 +832,10 @@ export default function App() {
               />
             )}
 
-            {activeTab === '🏗️ المشاريع' && perms.view_units && (
+            {activeTab === '🏗️ المشاريع' && perms.view_projects && (
               <ProjectsView
                 db={db}
-                canEdit={perms.edit_units}
+                canEdit={perms.edit_projects}
                 onUpdateDb={handleUpdateDb}
                 onNavigateTab={(tab) => setActiveTab(tab)}
               />
@@ -936,6 +847,10 @@ export default function App() {
                 canEdit={perms.edit_units}
                 onUpdateDb={handleUpdateDb}
                 onOpenQr={unit => setSelectedQrUnit(unit)}
+                onOpenVisitor={() => {
+                  window.history.pushState({}, '', '?mode=visitor');
+                  setIsVisitorMode(true);
+                }}
               />
             )}
 
@@ -1021,6 +936,11 @@ export default function App() {
           companyPhone={db.settings.phone}
           companyAddress={db.settings.address}
           onClose={() => setSelectedQrUnit(null)}
+          onOpenUnitPreview={(unitId) => {
+            window.history.pushState({ unitId }, '', `?unit=${unitId}`);
+            setPublicUnitId(unitId);
+            setSelectedQrUnit(null);
+          }}
         />
       )}
 

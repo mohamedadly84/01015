@@ -180,6 +180,7 @@ export const UsersView: React.FC<Props> = ({
     manager: { label: 'مدير (بدون إعدادات)', badge: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800', dotColor: 'bg-blue-500' },
     accountant: { label: 'محاسب مالي', badge: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800', dotColor: 'bg-amber-500' },
     sales: { label: 'مسؤول مبيعات', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800', dotColor: 'bg-emerald-500' },
+    engineer: { label: 'مهندس (وحدات ومشاريع)', badge: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800', dotColor: 'bg-purple-500' },
   };
 
   const handleTerminateSession = (session: UserSession) => {
@@ -1143,11 +1144,17 @@ export const UsersView: React.FC<Props> = ({
                     onChange={e => setRole(e.target.value as UserRole)}
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   >
+                    <option value="engineer">🟣 مهندس (إضافة وتعديل الوحدات والمشاريع فقط)</option>
                     <option value="sales">🟢 مسؤول مبيعات (Sales)</option>
                     <option value="accountant">🟡 محاسب مالي (Accountant)</option>
                     <option value="manager">🔵 مدير (اطلاع كامل على البرنامج بدون الإعدادات)</option>
                     <option value="admin">🔴 مدير عام (Admin - كامل الصلاحيات)</option>
                   </select>
+                  {role === 'engineer' && (
+                    <p className="text-[11px] text-purple-600 dark:text-purple-400 mt-1 font-semibold leading-relaxed">
+                      * مخصص للمهندسين: يتيح فقط إضافة وتعديل الوحدات والمشاريع، مع حجب كافة البيانات المالية والمبيعات والعملاء والتقارير.
+                    </p>
+                  )}
                   {role === 'manager' && (
                     <p className="text-[11px] text-blue-600 mt-1 font-semibold leading-relaxed">
                       * يتيح الاطلاع والعمل على جميع أقسام البرنامج مع حجب صفحة الإعدادات تماماً.
