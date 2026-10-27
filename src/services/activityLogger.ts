@@ -191,7 +191,7 @@ export function logActivity(
     role: user.role,
     actionType,
     actionLabel,
-    targetTitle,
+    ...(targetTitle !== undefined ? { targetTitle } : {}),
     details
   };
 

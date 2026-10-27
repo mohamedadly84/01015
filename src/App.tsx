@@ -62,6 +62,7 @@ export default function App() {
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [isSummaryReportOpen, setIsSummaryReportOpen] = useState<boolean>(false);
   const [quickPayInstallmentId, setQuickPayInstallmentId] = useState<number | null>(null);
+  const [selectedProjectFilter, setSelectedProjectFilter] = useState<string>('الكل');
 
   // Cloud sync state
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(true);
@@ -181,6 +182,11 @@ export default function App() {
   }, []);
 
   // Update DB handler (saves locally & syncs with cloud Firestore immediately)
+  const dbRef = React.useRef<AppDatabase>(db);
+  useEffect(() => {
+    dbRef.current = db;
+  }, [db]);
+
   const handleUpdateDb = (
     updatedDb: AppDatabase,
     activityMeta?: { actionType: ActivityActionType; actionLabel: string; details: string; targetTitle?: string }
@@ -200,14 +206,14 @@ export default function App() {
     } else if (currentUser && (!updatedDb.activityLogs || updatedDb.activityLogs === db.activityLogs)) {
       if ((updatedDb.units?.length || 0) > (db.units?.length || 0)) {
         const addedUnit = updatedDb.units[updatedDb.units.length - 1];
-        finalDb = logActivity(updatedDb, currentUser, 'unit_add', 'إضافة وحدة جديدة', `تم إضافة الوحدة رقم ${addedUnit?.unitNumber || ''} في ${addedUnit?.building || ''}`, `وحدة ${addedUnit?.unitNumber}`);
+        finalDb = logActivity(updatedDb, currentUser, 'unit_add', 'إضافة وحدة جديدة', `تم إضافة الوحدة رقم ${addedUnit?.unitNumber || ''} في ${addedUnit?.building || ''}`, `وحدة ${addedUnit?.unitNumber || ''}`);
       } else if ((updatedDb.units?.length || 0) < (db.units?.length || 0)) {
         finalDb = logActivity(updatedDb, currentUser, 'unit_delete', 'حذف وحدة عقارية', `تم حذف وحدة عقارية من النظام`, 'حذف وحدة');
       } else if ((updatedDb.contracts?.length || 0) > (db.contracts?.length || 0)) {
         const addedContract = updatedDb.contracts[updatedDb.contracts.length - 1];
-        const unit = updatedDb.units.find(u => u.id === addedContract.unitId);
-        const customer = updatedDb.customers.find(c => c.id === addedContract.customerId);
-        finalDb = logActivity(updatedDb, currentUser, 'contract_add', 'تسجيل عقد بيع جديد', `تم تسجيل عقد بيع جديد للوحدة ${unit?.unitNumber || ''} للعميل ${customer?.name || ''} بقيمة ${addedContract.totalPrice.toLocaleString()} ج.م`, `عقد بيع وحدة ${unit?.unitNumber}`);
+        const unit = (updatedDb.units || []).find(u => u.id === addedContract?.unitId);
+        const customer = (updatedDb.customers || []).find(c => c.id === addedContract?.customerId);
+        finalDb = logActivity(updatedDb, currentUser, 'contract_add', 'تسجيل عقد بيع جديد', `تم تسجيل عقد بيع جديد للوحدة ${unit?.unitNumber || ''} للعميل ${customer?.name || ''} بقيمة ${(addedContract?.totalPrice || 0).toLocaleString()} ج.م`, `عقد بيع وحدة ${unit?.unitNumber || ''}`);
       } else if ((updatedDb.contracts?.length || 0) < (db.contracts?.length || 0)) {
         finalDb = logActivity(updatedDb, currentUser, 'contract_delete', 'إلغاء عقد بيع', `تم إلغاء/حذف عقد بيع من النظام وإعادة الوحدة للمبيعات`, 'إلغاء عقد');
       } else if ((updatedDb.customers?.length || 0) > (db.customers?.length || 0)) {
@@ -217,7 +223,7 @@ export default function App() {
         finalDb = logActivity(updatedDb, currentUser, 'customer_delete', 'حذف عميل', `تم حذف بيانات عميل من النظام`, 'حذف عميل');
       } else if ((updatedDb.expenses?.length || 0) > (db.expenses?.length || 0)) {
         const addedExp = updatedDb.expenses[updatedDb.expenses.length - 1];
-        finalDb = logActivity(updatedDb, currentUser, 'expense_add', 'تسجيل مصروف إنشائي', `تم تسجيل مصروف ${addedExp?.description || ''} بقيمة ${addedExp?.amount?.toLocaleString()} ج.م على ${addedExp?.building || 'العام'}`, addedExp?.description);
+        finalDb = logActivity(updatedDb, currentUser, 'expense_add', 'تسجيل مصروف إنشائي', `تم تسجيل مصروف ${addedExp?.description || ''} بقيمة ${(addedExp?.amount || 0).toLocaleString()} ج.م على ${addedExp?.building || 'العام'}`, addedExp?.description);
       } else if ((updatedDb.expenses?.length || 0) < (db.expenses?.length || 0)) {
         finalDb = logActivity(updatedDb, currentUser, 'expense_delete', 'حذف مصروف', `تم حذف قيد مصروف من النظام`, 'حذف مصروف');
       } else if ((updatedDb.projects?.length || 0) > (db.projects?.length || 0)) {
@@ -226,9 +232,9 @@ export default function App() {
       } else if (
         Array.isArray(updatedDb.installments) &&
         Array.isArray(db.installments) &&
-        updatedDb.installments.reduce((sum, i) => sum + i.paidAmount, 0) > db.installments.reduce((sum, i) => sum + i.paidAmount, 0)
+        updatedDb.installments.reduce((sum, i) => sum + (i.paidAmount || 0), 0) > db.installments.reduce((sum, i) => sum + (i.paidAmount || 0), 0)
       ) {
-        const paidDiff = updatedDb.installments.reduce((sum, i) => sum + i.paidAmount, 0) - db.installments.reduce((sum, i) => sum + i.paidAmount, 0);
+        const paidDiff = updatedDb.installments.reduce((sum, i) => sum + (i.paidAmount || 0), 0) - db.installments.reduce((sum, i) => sum + (i.paidAmount || 0), 0);
         finalDb = logActivity(updatedDb, currentUser, 'installment_pay', 'تحصيل دفعة مالية / قسط', `تم تسجيل تحصيل مبلغ بقيمة ${paidDiff.toLocaleString()} ج.م في الخزينة وتحديث حالة القسط`, 'تحصيل قسط');
       } else if (JSON.stringify(updatedDb.settings) !== JSON.stringify(db.settings)) {
         finalDb = logActivity(updatedDb, currentUser, 'settings_update', 'تعديل إعدادات النظام', `تم تحديث بيانات الشركة وإعدادات النظام`, 'تحديث إعدادات');
@@ -236,6 +242,7 @@ export default function App() {
     }
 
     setDb(finalDb);
+    dbRef.current = finalDb;
     saveLocalDatabase(finalDb);
     setIsSyncing(true);
     syncServerDatabase(finalDb).then(ok => {
@@ -244,6 +251,8 @@ export default function App() {
         setSyncNotice('تم الحفظ سحابياً فوراً');
         setTimeout(() => setSyncNotice('سحابي متصل (مزامنة حية لحظية)'), 2000);
       }
+    }).catch(() => {
+      setIsSyncing(false);
     });
   };
 
@@ -251,16 +260,20 @@ export default function App() {
   useEffect(() => {
     if (!currentUser) return;
 
-    // Send initial session heartbeat
-    const { updatedDb } = startOrUpdateUserSession(db, currentUser, activeTab);
-    setDb(updatedDb);
-    saveLocalDatabase(updatedDb);
-    syncServerDatabase(updatedDb).catch(() => {});
+    // Send initial session heartbeat using functional state update to avoid stale closures
+    setDb(prevDb => {
+      const { updatedDb } = startOrUpdateUserSession(prevDb, currentUser, activeTab);
+      dbRef.current = updatedDb;
+      saveLocalDatabase(updatedDb);
+      syncServerDatabase(updatedDb).catch(() => {});
+      return updatedDb;
+    });
 
     // Periodic heartbeat every 25s
     const heartbeatTimer = setInterval(() => {
       setDb(prevDb => {
         const beatDb = heartbeatUserSession(prevDb, currentUser, activeTab);
+        dbRef.current = beatDb;
         saveLocalDatabase(beatDb);
         syncServerDatabase(beatDb).catch(() => {});
         return beatDb;
@@ -269,7 +282,7 @@ export default function App() {
 
     const handleBeforeUnload = () => {
       try {
-        const endingDb = endUserSession(db, currentUser);
+        const endingDb = endUserSession(dbRef.current, currentUser);
         saveLocalDatabase(endingDb);
         syncServerDatabase(endingDb).catch(() => {});
       } catch {}
@@ -336,7 +349,7 @@ export default function App() {
 
       if (remainingMs <= 0) {
         // Auto logout triggered!
-        const updatedDb = recordInactivityAutoLogout(db, currentUser, timeoutMinutes);
+        const updatedDb = recordInactivityAutoLogout(dbRef.current, currentUser, timeoutMinutes);
         handleUpdateDb(updatedDb);
         logoutFirebaseAuth().catch(() => {});
         setLoggedInUser(null);
@@ -389,8 +402,9 @@ export default function App() {
     setLoginError('');
 
     const trimmedUser = loginUsername.trim().toLowerCase();
-    const found = db.users.find(
-      u => u.username.toLowerCase() === trimmedUser
+    const usersList = Array.isArray(db.users) ? db.users : [];
+    const found = usersList.find(
+      u => u.username?.toLowerCase() === trimmedUser
     );
 
     if (found && found.active) {
@@ -837,7 +851,12 @@ export default function App() {
                 db={db}
                 canEdit={perms.edit_projects}
                 onUpdateDb={handleUpdateDb}
-                onNavigateTab={(tab) => setActiveTab(tab)}
+                onNavigateTab={(tab, filterBuilding) => {
+                  if (filterBuilding) {
+                    setSelectedProjectFilter(filterBuilding);
+                  }
+                  setActiveTab(tab);
+                }}
               />
             )}
 
@@ -847,6 +866,7 @@ export default function App() {
                 canEdit={perms.edit_units}
                 onUpdateDb={handleUpdateDb}
                 onOpenQr={unit => setSelectedQrUnit(unit)}
+                initialBuildingFilter={selectedProjectFilter}
                 onOpenVisitor={() => {
                   window.history.pushState({}, '', '?mode=visitor');
                   setIsVisitorMode(true);
@@ -932,9 +952,9 @@ export default function App() {
       {selectedQrUnit && (
         <QRCodeModal
           unit={selectedQrUnit}
-          companyName={db.settings.name}
-          companyPhone={db.settings.phone}
-          companyAddress={db.settings.address}
+          companyName={db.settings?.name || ''}
+          companyPhone={db.settings?.phone || ''}
+          companyAddress={db.settings?.address || ''}
           onClose={() => setSelectedQrUnit(null)}
           onOpenUnitPreview={(unitId) => {
             window.history.pushState({ unitId }, '', `?unit=${unitId}`);
@@ -946,9 +966,9 @@ export default function App() {
 
       {/* Receipt Modal */}
       {selectedReceiptInstallment && (() => {
-        const contract = db.contracts.find(c => c.id === selectedReceiptInstallment.contractId);
-        const customer = db.customers.find(c => c.id === contract?.customerId);
-        const unit = db.units.find(u => u.id === contract?.unitId);
+        const contract = (db.contracts || []).find(c => c.id === selectedReceiptInstallment.contractId);
+        const customer = (db.customers || []).find(c => c.id === contract?.customerId);
+        const unit = (db.units || []).find(u => u.id === contract?.unitId);
 
         return (
           <ReceiptModal
@@ -964,9 +984,9 @@ export default function App() {
 
       {/* Contract Modal */}
       {selectedContract && (() => {
-        const customer = db.customers.find(c => c.id === selectedContract.customerId);
-        const unit = db.units.find(u => u.id === selectedContract.unitId);
-        const contractInstallments = db.installments.filter(i => i.contractId === selectedContract.id);
+        const customer = (db.customers || []).find(c => c.id === selectedContract.customerId);
+        const unit = (db.units || []).find(u => u.id === selectedContract.unitId);
+        const contractInstallments = (db.installments || []).filter(i => i.contractId === selectedContract.id);
 
         return (
           <ContractModal

@@ -29,6 +29,7 @@ export interface Unit {
   finishingType?: string; // نوع التشطيب (نصف تشطيب، سوبر لوكس، ألترا لوكس)
   orientation?: string; // الواجهة (بحري، شرقي، قبلي، غربي، ناصية)
   description?: string; // مميزات ووصف الوحدة
+  imageUrl?: string; // رابط صورة الوحدة
 }
 
 export interface Customer {

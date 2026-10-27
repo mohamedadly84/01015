@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppDatabase, Installment } from '../../types';
 import { formatCurrency, downloadCSV } from '../../utils/helpers';
 import {
@@ -29,12 +29,25 @@ export const CollectionView: React.FC<Props> = ({
   const [showOverdueOnly, setShowOverdueOnly] = useState(false);
 
   // Pay modal state
-  const [payingInstallment, setPayingInstallment] = useState<Installment | null>(
-    quickPayInstallmentId
-      ? db.installments.find(i => i.id === quickPayInstallmentId) || null
-      : null
-  );
-  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [payingInstallment, setPayingInstallment] = useState<Installment | null>(() => {
+    if (!quickPayInstallmentId) return null;
+    return (db.installments || []).find(i => i.id === quickPayInstallmentId) || null;
+  });
+  const [paymentAmount, setPaymentAmount] = useState<number>(() => {
+    if (!quickPayInstallmentId) return 0;
+    const found = (db.installments || []).find(i => i.id === quickPayInstallmentId);
+    return found ? Math.max(0, found.amount - found.paidAmount) : 0;
+  });
+
+  useEffect(() => {
+    if (quickPayInstallmentId) {
+      const found = (db.installments || []).find(i => i.id === quickPayInstallmentId) || null;
+      setPayingInstallment(found);
+      if (found) {
+        setPaymentAmount(Math.max(0, found.amount - found.paidAmount));
+      }
+    }
+  }, [quickPayInstallmentId, db.installments]);
 
   const today = new Date().toISOString().split('T')[0];
 

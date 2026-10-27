@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AppDatabase, Unit, UnitStatus, Project } from '../../types';
 import {
   formatCurrency, formatNumber, downloadCSV,
@@ -8,7 +8,8 @@ import { UnitFloorPlan } from '../UnitFloorPlan';
 import {
   Building, Plus, Search, Filter, QrCode, Trash2, Edit2, Download,
   CheckCircle, AlertCircle, Eye, Calculator, Sparkles, Globe,
-  Compass, FileText, Upload, X, Copy, Check
+  Compass, FileText, Upload, X, Copy, Check, Image as ImageIcon, Link as LinkIcon,
+  RotateCcw, ArrowUpDown, Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,6 +19,7 @@ interface Props {
   onUpdateDb: (updated: AppDatabase) => void;
   onOpenQr: (unit: Unit) => void;
   onOpenVisitor?: () => void;
+  initialBuildingFilter?: string;
 }
 
 export const UnitsView: React.FC<Props> = ({
@@ -26,10 +28,19 @@ export const UnitsView: React.FC<Props> = ({
   onUpdateDb,
   onOpenQr,
   onOpenVisitor,
+  initialBuildingFilter,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterBuilding, setFilterBuilding] = useState('الكل');
+  const [filterBuilding, setFilterBuilding] = useState(initialBuildingFilter || 'الكل');
   const [filterStatus, setFilterStatus] = useState('الكل');
+  const [filterFloor, setFilterFloor] = useState('الكل');
+  const [sortBy, setSortBy] = useState<'unit_asc' | 'floor_asc' | 'area_desc' | 'price_asc' | 'price_desc'>('unit_asc');
+
+  useEffect(() => {
+    if (initialBuildingFilter) {
+      setFilterBuilding(initialBuildingFilter);
+    }
+  }, [initialBuildingFilter]);
 
   // Modal / Form state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -50,6 +61,7 @@ export const UnitsView: React.FC<Props> = ({
   const [formFinishingType, setFormFinishingType] = useState<string>('سوبر لوكس');
   const [formOrientation, setFormOrientation] = useState<string>('بحري');
   const [formFloorPlanImage, setFormFloorPlanImage] = useState<string>('');
+  const [formImageUrl, setFormImageUrl] = useState<string>('');
   const [formError, setFormError] = useState('');
 
   // Blueprint / Floor Plan quick preview modal
@@ -58,15 +70,64 @@ export const UnitsView: React.FC<Props> = ({
 
   // Extract unique buildings from registered projects, units and expenses
   const buildings = getBuildingList(db);
+  const unitsList = useMemo(() => (Array.isArray(db.units) ? db.units : []), [db.units]);
+  const contractsList = useMemo(() => (Array.isArray(db.contracts) ? db.contracts : []), [db.contracts]);
 
-  const filteredUnits = db.units.filter(u => {
-    const matchesSearch =
-      u.unitNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.building.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesBuilding = filterBuilding === 'الكل' || u.building === filterBuilding;
-    const matchesStatus = filterStatus === 'الكل' || u.status === filterStatus;
-    return matchesSearch && matchesBuilding && matchesStatus;
-  });
+  // Available floors based on selected project/building
+  const availableFloors = useMemo(() => {
+    const relevantUnits = filterBuilding === 'الكل'
+      ? unitsList
+      : unitsList.filter(u => u.building === filterBuilding);
+    return Array.from(new Set(relevantUnits.map(u => u.floor))).sort((a, b) => a - b);
+  }, [unitsList, filterBuilding]);
+
+  // Status counts for current project filter
+  const statusCounts = useMemo(() => {
+    const baseUnits = filterBuilding === 'الكل'
+      ? unitsList
+      : unitsList.filter(u => u.building === filterBuilding);
+    return {
+      all: baseUnits.length,
+      available: baseUnits.filter(u => u.status === 'متاحة').length,
+      reserved: baseUnits.filter(u => u.status === 'محجوزة').length,
+      sold: baseUnits.filter(u => u.status === 'مباعة').length,
+    };
+  }, [unitsList, filterBuilding]);
+
+  const hasActiveFilters = searchTerm.trim() !== '' || filterBuilding !== 'الكل' || filterStatus !== 'الكل' || filterFloor !== 'الكل';
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setFilterBuilding('الكل');
+    setFilterStatus('الكل');
+    setFilterFloor('الكل');
+    setSortBy('unit_asc');
+  };
+
+  const filteredUnits = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    return unitsList
+      .filter(u => {
+        const matchesSearch =
+          !q ||
+          (u.unitNumber || '').toLowerCase().includes(q) ||
+          (u.building || '').toLowerCase().includes(q) ||
+          String(u.floor ?? '').includes(q) ||
+          (u.finishingType && u.finishingType.toLowerCase().includes(q)) ||
+          (u.orientation && u.orientation.toLowerCase().includes(q));
+        const matchesBuilding = filterBuilding === 'الكل' || u.building === filterBuilding;
+        const matchesStatus = filterStatus === 'الكل' || u.status === filterStatus;
+        const matchesFloor = filterFloor === 'الكل' || String(u.floor) === String(filterFloor);
+        return matchesSearch && matchesBuilding && matchesStatus && matchesFloor;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'floor_asc') return a.floor - b.floor || (a.unitNumber || '').localeCompare(b.unitNumber || '', undefined, { numeric: true });
+        if (sortBy === 'area_desc') return b.area - a.area;
+        if (sortBy === 'price_asc') return a.price - b.price;
+        if (sortBy === 'price_desc') return b.price - a.price;
+        return (a.unitNumber || '').localeCompare(b.unitNumber || '', undefined, { numeric: true });
+      });
+  }, [unitsList, searchTerm, filterBuilding, filterStatus, filterFloor, sortBy]);
 
   const resetForm = () => {
     setEditingUnitId(null);
@@ -84,6 +145,7 @@ export const UnitsView: React.FC<Props> = ({
     setFormFinishingType('سوبر لوكس');
     setFormOrientation('بحري');
     setFormFloorPlanImage('');
+    setFormImageUrl('');
     setFormError('');
     setIsFormOpen(false);
   };
@@ -114,6 +176,7 @@ export const UnitsView: React.FC<Props> = ({
     setFormFinishingType(unit.finishingType || 'سوبر لوكس');
     setFormOrientation(unit.orientation || 'بحري');
     setFormFloorPlanImage(unit.floorPlanImage || '');
+    setFormImageUrl(unit.imageUrl || '');
     setFormError('');
     setIsFormOpen(true);
   };
@@ -147,7 +210,7 @@ export const UnitsView: React.FC<Props> = ({
     }
 
     // Check duplicate unit number in same building
-    const duplicate = db.units.find(
+    const duplicate = unitsList.find(
       u => u.unitNumber.trim() === formUnitNumber.trim() &&
            u.building.trim() === effectiveBuilding &&
            u.id !== editingUnitId
@@ -173,7 +236,7 @@ export const UnitsView: React.FC<Props> = ({
     }
 
     if (editingUnitId) {
-      const updatedUnits = db.units.map(u =>
+      const updatedUnits = unitsList.map(u =>
         u.id === editingUnitId
           ? {
               ...u,
@@ -189,12 +252,13 @@ export const UnitsView: React.FC<Props> = ({
               finishingType: formFinishingType,
               orientation: formOrientation,
               floorPlanImage: formFloorPlanImage || undefined,
+              imageUrl: formImageUrl.trim() || undefined,
             }
           : u
       );
       onUpdateDb({ ...db, units: updatedUnits, projects: updatedProjects });
     } else {
-      const newId = db.units.length > 0 ? Math.max(...db.units.map(u => u.id)) + 1 : 1;
+      const newId = unitsList.length > 0 ? Math.max(...unitsList.map(u => u.id)) + 1 : 1;
       const newUnit: Unit = {
         id: newId,
         unitNumber: formUnitNumber.trim(),
@@ -209,27 +273,28 @@ export const UnitsView: React.FC<Props> = ({
         finishingType: formFinishingType,
         orientation: formOrientation,
         floorPlanImage: formFloorPlanImage || undefined,
+        imageUrl: formImageUrl.trim() || undefined,
       };
-      onUpdateDb({ ...db, units: [...db.units, newUnit], projects: updatedProjects });
+      onUpdateDb({ ...db, units: [...unitsList, newUnit], projects: updatedProjects });
     }
 
     resetForm();
   };
 
   const handleDeleteUnit = (id: number) => {
-    const hasContract = db.contracts.some(c => c.unitId === id);
+    const hasContract = contractsList.some(c => c.unitId === id);
     if (hasContract) {
       alert('لا يمكن حذف هذه الوحدة لأنها مرتبطة بعقد بيع مسجل في النظام.');
       return;
     }
     if (window.confirm('هل أنت متأكد من رغبتك في حذف هذه الوحدة نهائياً؟')) {
-      const updatedUnits = db.units.filter(u => u.id !== id);
+      const updatedUnits = unitsList.filter(u => u.id !== id);
       onUpdateDb({ ...db, units: updatedUnits });
     }
   };
 
   const handleQuickStatusChange = (unitId: number, newStatus: UnitStatus) => {
-    const updatedUnits = db.units.map(u =>
+    const updatedUnits = unitsList.map(u =>
       u.id === unitId ? { ...u, status: newStatus } : u
     );
     onUpdateDb({ ...db, units: updatedUnits });
@@ -238,7 +303,9 @@ export const UnitsView: React.FC<Props> = ({
   const handleCopyCatalogLink = () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const catalogUrl = `${origin}/?mode=visitor`;
-    navigator.clipboard.writeText(catalogUrl);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(catalogUrl).catch(() => {});
+    }
     setCopiedCatalog(true);
     setTimeout(() => setCopiedCatalog(false), 2500);
   };
@@ -344,54 +411,218 @@ export const UnitsView: React.FC<Props> = ({
         </div>
       </motion.div>
 
-      {/* Search and Filters */}
+      {/* Advanced Search and Filters Toolbar for Large Projects */}
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...springTransition, delay: 0.05 }}
-        className="glass-panel p-5 rounded-3xl shadow-xl shadow-indigo-500/5 flex flex-col md:flex-row gap-4 items-center justify-between border border-indigo-500/20"
+        className="glass-panel p-5 rounded-3xl shadow-xl shadow-indigo-500/5 space-y-4 border border-indigo-500/20"
       >
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder="بحث برقم الوحدة أو العمارة..."
-            className="w-full pr-9 pl-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Filter className="w-4 h-4 text-slate-400" />
-            <span>العمارة:</span>
-            <select
-              value={filterBuilding}
-              onChange={e => setFilterBuilding(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="الكل">جميع العمارات ({buildings.length})</option>
-              {buildings.map(b => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
+        {/* Top Row: Search Input + Dropdown Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+          {/* Search Input */}
+          <div className="relative md:col-span-4">
+            <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-3" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="بحث سريع برقم الوحدة، المشروع، الدور، أو التشطيب..."
+              className="w-full pr-10 pl-9 py-2.5 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute left-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-full cursor-pointer"
+                title="مسح البحث"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <span>الحالة:</span>
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="الكل">الكل</option>
-              <option value="متاحة">متاحة</option>
-              <option value="محجوزة">محجوزة</option>
-              <option value="مباعة">مباعة</option>
-            </select>
+          {/* Project / Building Filter Dropdown */}
+          <div className="md:col-span-3 flex items-center gap-2">
+            <div className="w-full">
+              <div className="relative">
+                <Building className="w-4 h-4 text-indigo-500 absolute right-3 top-3 pointer-events-none" />
+                <select
+                  value={filterBuilding}
+                  onChange={e => {
+                    setFilterBuilding(e.target.value);
+                    setFilterFloor('الكل');
+                  }}
+                  className="w-full pr-9 pl-3 py-2.5 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                >
+                  <option value="الكل">كل المشاريع والعمارات ({buildings.length})</option>
+                  {buildings.map(b => {
+                    const count = db.units.filter(u => u.building === b).length;
+                    return (
+                      <option key={b} value={b}>
+                        {b} ({count} وحدة)
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Status Filter Dropdown */}
+          <div className="md:col-span-2">
+            <div className="relative">
+              <Filter className="w-4 h-4 text-emerald-500 absolute right-3 top-3 pointer-events-none" />
+              <select
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+                className="w-full pr-9 pl-3 py-2.5 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                <option value="الكل">كل الحالات ({statusCounts.all})</option>
+                <option value="متاحة">متاحة ({statusCounts.available})</option>
+                <option value="محجوزة">محجوزة ({statusCounts.reserved})</option>
+                <option value="مباعة">مباعة ({statusCounts.sold})</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Floor Filter Dropdown */}
+          <div className="md:col-span-1">
+            <div className="relative">
+              <select
+                value={filterFloor}
+                onChange={e => setFilterFloor(e.target.value)}
+                title="تصفية حسب الدور"
+                className="w-full px-2.5 py-2.5 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                <option value="الكل">كل الأدوار</option>
+                {availableFloors.map(floor => (
+                  <option key={floor} value={String(floor)}>
+                    دور {floor}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Sort By Dropdown */}
+          <div className="md:col-span-2">
+            <div className="relative">
+              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as any)}
+                className="w-full pr-8 pl-2 py-2.5 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                <option value="unit_asc">ترتيب: رقم الوحدة</option>
+                <option value="floor_asc">ترتيب: الدور</option>
+                <option value="area_desc">المساحة: الأكبر أولاً</option>
+                <option value="price_asc">السعر: الأقل أولاً</option>
+                <option value="price_desc">السعر: الأعلى أولاً</option>
+              </select>
+            </div>
           </div>
         </div>
+
+        {/* Bottom Row: Quick Status Pills + Quick Project Pills + Reset */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/60 dark:border-white/10">
+          {/* Quick Status Filter Buttons */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 ml-1">
+              فلترة سريعة بالحالة:
+            </span>
+            {[
+              { id: 'الكل', label: 'الكل', count: statusCounts.all, activeClass: 'bg-slate-800 text-white dark:bg-white dark:text-slate-900' },
+              { id: 'متاحة', label: 'متاحة', count: statusCounts.available, activeClass: 'bg-blue-600 text-white' },
+              { id: 'محجوزة', label: 'محجوزة', count: statusCounts.reserved, activeClass: 'bg-amber-500 text-white' },
+              { id: 'مباعة', label: 'مباعة', count: statusCounts.sold, activeClass: 'bg-emerald-600 text-white' },
+            ].map(st => {
+              const active = filterStatus === st.id;
+              return (
+                <button
+                  key={st.id}
+                  type="button"
+                  onClick={() => setFilterStatus(st.id)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    active
+                      ? `${st.activeClass} shadow-xs`
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <span>{st.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-mono ${active ? 'bg-black/20 text-current' : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                    {st.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Results Counter & Reset Filters Button */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              النتائج المطابقة: <strong className="text-indigo-600 dark:text-indigo-400 font-mono">{filteredUnits.length}</strong> من <strong className="font-mono">{db.units.length}</strong> وحدة
+            </span>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 transition cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>إعادة ضبط الفلاتر</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Project Pills when multiple projects exist */}
+        {buildings.length > 1 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 shrink-0 flex items-center gap-1 ml-1">
+              <Layers className="w-3.5 h-3.5 text-indigo-500" />
+              <span>المشاريع:</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setFilterBuilding('الكل');
+                setFilterFloor('الكل');
+              }}
+              className={`px-3 py-1 rounded-xl text-xs font-bold shrink-0 transition cursor-pointer ${
+                filterBuilding === 'الكل'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+              }`}
+            >
+              جميع المشاريع ({db.units.length})
+            </button>
+            {buildings.map(b => {
+              const count = db.units.filter(u => u.building === b).length;
+              const active = filterBuilding === b;
+              return (
+                <button
+                  key={b}
+                  type="button"
+                  onClick={() => {
+                    setFilterBuilding(b);
+                    setFilterFloor('الكل');
+                  }}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold shrink-0 transition cursor-pointer flex items-center gap-1.5 ${
+                    active
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                  }`}
+                >
+                  <span>{b}</span>
+                  <span className={`text-[10px] px-1.5 rounded-md font-mono ${active ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </motion.div>
 
       {/* Add / Edit Unit Modal Form */}
@@ -634,6 +865,44 @@ export const UnitsView: React.FC<Props> = ({
                     * في حال عدم رفع صورة، يقوم البرنامج بتوليد رسم هندسي توضيحي ومخطط ذكي للوحدة تلقائياً وفقاً لمساحتها وتوزيع غرفها.
                   </span>
                 </div>
+
+                {/* Unit Photo Image URL Input */}
+                <div className="pt-2 border-t border-slate-200/70">
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                    <LinkIcon className="w-3.5 h-3.5 text-blue-600" />
+                    <span>رابط صورة الوحدة (imageUrl - اختياري):</span>
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="url"
+                      value={formImageUrl}
+                      onChange={e => setFormImageUrl(e.target.value)}
+                      placeholder="https://example.com/unit-image.jpg"
+                      dir="ltr"
+                      className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none text-left"
+                    />
+                    {formImageUrl.trim() && (
+                      <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-slate-300 bg-slate-100 shrink-0 shadow-xs">
+                        <img
+                          src={formImageUrl.trim()}
+                          alt="معاينة صورة الوحدة"
+                          className="w-full h-full object-cover"
+                          onError={e => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setFormImageUrl('')}
+                          className="absolute top-0.5 right-0.5 p-0.5 bg-red-600 text-white rounded-full hover:bg-red-700 transition cursor-pointer"
+                          title="مسح الرابط"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -764,6 +1033,131 @@ export const UnitsView: React.FC<Props> = ({
         )}
       </AnimatePresence>
 
+      {/* Unit Cards Grid with Thumbnail Image */}
+      {filteredUnits.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredUnits.map(unit => {
+            const hasContract = db.contracts.some(c => c.unitId === unit.id);
+            const rooms = unit.roomsCount || (unit.area >= 160 ? 4 : unit.area >= 120 ? 3 : 2);
+            const baths = unit.bathroomsCount || (unit.area >= 140 ? 2 : 1);
+
+            return (
+              <motion.div
+                key={`card-${unit.id}`}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass-panel rounded-3xl p-4 border border-slate-200/80 dark:border-white/10 shadow-xl flex flex-col justify-between gap-4 hover:border-indigo-500/40 transition"
+              >
+                <div className="flex items-start gap-3.5">
+                  {/* Unit Thumbnail */}
+                  <div className="w-20 h-20 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shrink-0 flex items-center justify-center relative">
+                    {unit.imageUrl ? (
+                      <img
+                        src={unit.imageUrl}
+                        alt={`وحدة ${unit.unitNumber}`}
+                        className="w-full h-full object-cover"
+                        onError={e => {
+                          (e.currentTarget as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <ImageIcon className="w-7 h-7 text-slate-400 dark:text-slate-500" />
+                    )}
+                  </div>
+
+                  {/* Unit Header Details */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 block truncate">
+                          {unit.building}
+                        </span>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                          وحدة {unit.unitNumber}
+                        </h3>
+                      </div>
+                      <span
+                        className={`text-[11px] font-bold py-1 px-2.5 rounded-xl border shrink-0 ${
+                          unit.status === 'متاحة'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/40'
+                            : unit.status === 'محجوزة'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700/40'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700/40'
+                        }`}
+                      >
+                        {unit.status}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-slate-600 dark:text-slate-300">
+                      <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 font-semibold">
+                        الدور {unit.floor}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold">
+                        {unit.area} م²
+                      </span>
+                      <span className="text-slate-500 dark:text-slate-400">
+                        {rooms} غرف • {baths} حمام
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-slate-200/60 dark:border-white/10">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">السعر المطلوب</span>
+                    <span className="text-sm font-black text-emerald-700 dark:text-emerald-400">
+                      {formatCurrency(unit.price)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setPreviewFloorPlanUnit(unit)}
+                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-bold transition border border-slate-200 dark:border-slate-700 flex items-center gap-1 cursor-pointer"
+                      title="معاينة المخطط الهندسي"
+                    >
+                      <Compass className="w-3.5 h-3.5" />
+                      <span>المخطط</span>
+                    </button>
+                    <button
+                      onClick={() => onOpenQr(unit)}
+                      title="عرض رمز QR Code والبروشور"
+                      className="p-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-xl transition border border-indigo-200 dark:border-indigo-800 cursor-pointer"
+                    >
+                      <QrCode className="w-4 h-4" />
+                    </button>
+                    {canEdit && (
+                      <>
+                        <button
+                          onClick={() => handleOpenEdit(unit)}
+                          title="تعديل بيانات وصورة الوحدة"
+                          className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl transition cursor-pointer"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUnit(unit.id)}
+                          title={hasContract ? 'لا يمكن حذف وحدة مرتبطة بعقد' : 'حذف الوحدة'}
+                          disabled={hasContract}
+                          className={`p-1.5 rounded-xl transition ${
+                            hasContract
+                              ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                              : 'hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-500 hover:text-red-600 dark:hover:text-red-400 cursor-pointer'
+                          }`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Units Table - Apple Glassmorphism Design */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -775,7 +1169,7 @@ export const UnitsView: React.FC<Props> = ({
           <table className="w-full text-right text-sm">
             <thead className="bg-slate-100/70 dark:bg-slate-900/80 text-slate-800 dark:text-slate-100 font-black border-b border-slate-200/80 dark:border-white/10">
               <tr>
-                <th className="py-4 px-4 font-black">رقم الوحدة</th>
+                <th className="py-4 px-4 font-black">الوحدة والصورة</th>
                 <th className="py-4 px-4 font-bold">العمارة / المشروع</th>
                 <th className="py-4 px-4 font-bold">الدور</th>
                 <th className="py-4 px-4 font-bold">المساحة</th>
@@ -809,7 +1203,23 @@ export const UnitsView: React.FC<Props> = ({
                   return (
                     <tr key={unit.id} className="hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors duration-150">
                       <td className="py-4 px-4 font-black text-slate-900 dark:text-white text-base">
-                        {unit.unitNumber}
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shrink-0 flex items-center justify-center">
+                            {unit.imageUrl ? (
+                              <img
+                                src={unit.imageUrl}
+                                alt={`وحدة ${unit.unitNumber}`}
+                                className="w-full h-full object-cover"
+                                onError={e => {
+                                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <ImageIcon className="w-4 h-4 text-slate-400" />
+                            )}
+                          </div>
+                          <span>{unit.unitNumber}</span>
+                        </div>
                       </td>
                       <td className="py-4 px-4 font-semibold text-slate-700 dark:text-slate-200">
                         {unit.building}

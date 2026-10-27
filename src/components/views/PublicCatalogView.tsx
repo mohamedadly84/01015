@@ -728,15 +728,29 @@ export const PublicCatalogView: React.FC<Props> = ({
                     {/* Top Card Bar: Building & Unit Number & Status */}
                     <div className="space-y-4">
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <span className={`text-[11px] font-bold block ${isDarkMode ? 'text-amber-400' : 'text-amber-700'}`}>
-                            {u.building}
-                          </span>
-                          <h4 className={`text-2xl font-black font-mono tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                            وحدة {u.unitNumber}
-                          </h4>
+                        <div className="flex items-center gap-3 min-w-0">
+                          {u.imageUrl && (
+                            <div className="w-14 h-14 rounded-2xl overflow-hidden border border-amber-500/30 bg-slate-800 shrink-0 shadow-md">
+                              <img
+                                src={u.imageUrl}
+                                alt={`وحدة ${u.unitNumber}`}
+                                className="w-full h-full object-cover"
+                                onError={e => {
+                                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <span className={`text-[11px] font-bold block truncate ${isDarkMode ? 'text-amber-400' : 'text-amber-700'}`}>
+                              {u.building}
+                            </span>
+                            <h4 className={`text-2xl font-black font-mono tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                              وحدة {u.unitNumber}
+                            </h4>
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end gap-1.5">
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
                           {getStatusBadge(u.status)}
                           <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-lg border ${
                             isDarkMode 

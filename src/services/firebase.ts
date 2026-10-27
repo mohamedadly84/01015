@@ -109,13 +109,20 @@ export function subscribeToCloudDatabase(
       } else {
         // Document does not exist yet in cloud Firestore: initialize it with empty clean database
         try {
-          await setDoc(docRef, {
-            ...initialData,
-            updatedAt: new Date().toISOString()
-          });
+          const cleanInitialPayload = JSON.parse(
+            JSON.stringify({
+              ...initialData,
+              updatedAt: new Date().toISOString()
+            })
+          );
+          await setDoc(docRef, cleanInitialPayload);
           onData(initialData);
         } catch (err) {
-          handleFirestoreError(err, OperationType.WRITE, REALESTATE_DOC_PATH);
+          try {
+            handleFirestoreError(err, OperationType.WRITE, REALESTATE_DOC_PATH);
+          } catch {
+            // Structured error logged without crashing snapshot listener
+          }
         }
       }
     },
@@ -139,13 +146,21 @@ export function subscribeToCloudDatabase(
 export async function saveToCloudDatabase(data: AppDatabase): Promise<boolean> {
   const docRef = doc(db, 'realestate', 'main');
   try {
-    await setDoc(docRef, {
-      ...data,
-      updatedAt: new Date().toISOString()
-    });
+    // Strip any undefined properties inside nested objects/arrays to prevent Firestore setDoc errors
+    const cleanPayload = JSON.parse(
+      JSON.stringify({
+        ...data,
+        updatedAt: new Date().toISOString()
+      })
+    );
+    await setDoc(docRef, cleanPayload);
     return true;
   } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, REALESTATE_DOC_PATH);
+    try {
+      handleFirestoreError(err, OperationType.WRITE, REALESTATE_DOC_PATH);
+    } catch {
+      // Structured error logged; return false gracefully for local fallback
+    }
     return false;
   }
 }
